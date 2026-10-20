@@ -758,6 +758,28 @@ var ENEMY_TYPES = {
       ctx.beginPath(); ctx.arc(e.r * 0.8, -e.r * 0.18 + sway, 2.4, 0, TAU); ctx.fill();
     }
   },
+  mimic: {
+    hp: 7, speed: 150, r: 11, dmg: 1, score: 77, minEpoch: 999, weight: 0,
+    behavior: "mimic", tw: 0.3,
+    draw: function (e, ctx, t) {
+      /* the false toby: identical sprite, blue glow — until you hold still, or it glitches */
+      var frozen = (typeof G !== "undefined" && G) && (Math.abs(G.pvx) + Math.abs(G.pvy) < 10 && G.pat > 0.2);
+      var glitch = (Math.sin(t * 7 + e.seed) > 0.86) ? 0.55 : 1;
+      var tb = SPR.toby;
+      ctx.save();
+      ctx.shadowColor = (frozen || glitch < 1) ? "#e05238" : "#3aa0ff";
+      ctx.shadowBlur = frozen ? 14 : 9;
+      ctx.globalAlpha = glitch;
+      if (tb && tb.complete && tb.naturalWidth) {
+        var ms = e.r * 2.6;
+        ctx.drawImage(tb, -ms / 2, -ms / 2 - 4 + Math.sin(t * 2.4 + e.seed) * 2, ms, ms * 1.06);
+      } else {
+        ctx.fillStyle = frozen ? "#e05238" : "#3aa0ff";
+        ctx.beginPath(); ctx.arc(0, 0, e.r, 0, TAU); ctx.fill();
+      }
+      ctx.restore();
+    }
+  },
   chest: {
     /* the yield chest — it does not chase; it waits to be opened. pure taboshi reward */
     hp: 8, speed: 0, r: 17, dmg: 1, score: 77, minEpoch: 999, weight: 0,
@@ -960,7 +982,7 @@ function newGame() {
     taboT: 9,
     chestT: 55,
     followers: [], wheelA: 0,
-    hasKey: false, chests: 0,
+    hasKey: false, chests: 0, mimicT: rand(18, 30),
     zapBuffT: 0,
     loreT: 26
   };
@@ -1133,6 +1155,13 @@ function killEnemy(i) {
     G.enemies.splice(i, 1);
     return;
   }
+  if (e.type === "mimic") {
+    addText(e.x, e.y - 32, "NOT TOBY", "#e05238", 16);
+    toast("\u2715 THE MIMIC FADED \u2014 study frog life. frfr", 2600);
+    for (var mo = 0; mo < 3; mo++) {
+      G.orbs.push({ x: e.x + rand(-12, 12), y: e.y + rand(-12, 12), vx: rand(-40, 40), vy: rand(-40, 40), field: true, r: 4, t: rand(0, TAU) });
+    }
+  }
   addParts(e.x, e.y, e.type === "ego" ? "#f2c14e" : e.type === "macro" ? "#c73b2d" : "#8b78a8", 7);
   G.kills++;
   G.score += e.score * G.stats.yieldMul;
@@ -1262,6 +1291,24 @@ function update(dt) {
     beep(SCALE[8], 0.4, "sine", 0.02);
   }
 
+  /* --- the night mimic: only the mirror hall breeds it --- */
+  G.mimicT -= dt;
+  if (G.mimicT <= 0) {
+    G.mimicT = rand(26, 40);
+    if (zoneOf(G.epoch).id === "mirror") {
+      var mcount = 0;
+      for (var mi = 0; mi < G.enemies.length; mi++) { if (G.enemies[mi].type === "mimic") mcount++; }
+      if (mcount < 1) {
+        var medge = randInt(0, 3), mmrg = 50;
+        var mxs = medge === 1 ? W + mmrg : medge === 3 ? -mmrg : rand(0, W);
+        var mys = medge === 0 ? -mmrg : medge === 2 ? H + mmrg : rand(0, H);
+        G.enemies.push({ type: "mimic", x: mxs, y: mys, px: mxs, py: mys, hp: 7 + G.epoch * 1.5, maxHp: 7 + G.epoch * 1.5, r: 11, speed: 150 + G.epoch * 6, seed: rand(0, TAU), stun: 0, shoot: 999, wobble: 0, score: 77 });
+        toast("THE FALSE TOBY WALKS \u2014 it does the opposite of you. hold still to see it", 3200);
+        beep(SCALE[3], 0.4, "square", 0.03);
+      }
+    }
+  }
+
   /* --- epoch clock: the intra timer reset --- */
   G.epochT -= dt;
   if (G.epochT <= 0) { endEpoch(); return; }
@@ -1282,6 +1329,7 @@ function update(dt) {
       for (i = 0; i < n; i++) {
         var e2 = inRange[i];
         var dmg = (S.zapDmg + (G.zapBuffT > 0 ? 3 : 0)) * (sacred ? 7 : 1);
+        if (e2.type === "mimic" && G.pat > 0.6) dmg *= 3; /* stillness sees the truth */
         e2.hp -= dmg;
         G.zaps.push({ x1: G.px, y1: G.py, x2: e2.x, y2: e2.y, life: 0.14, sacred: sacred });
         addText(e2.x + rand(-6, 6), e2.y - 12, sacred ? "×7 " + dmg : "" + dmg, sacred ? "#f2c14e" : "#9fc4ff", sacred ? 20 : 14);
@@ -1305,7 +1353,15 @@ function update(dt) {
     var dx = G.px - e.x, dy = G.py - e.y, dl = Math.hypot(dx, dy) || 1;
     if (e.stun > 0) { e.stun -= dt; }
     else {
-      if (ENEMY_TYPES[e.type].behavior === "shooter" && dl < 340) {
+      if (ENEMY_TYPES[e.type].behavior === "mimic") {
+        if (Math.abs(G.pvx) + Math.abs(G.pvy) < 10 && G.pat > 0.2) {
+          /* the false one cannot mirror a frog at rest — it stands there, shaking */
+        } else {
+          var mxx = -G.pvx, myy = -G.pvy, mll = Math.hypot(mxx, myy) || 1;
+          e.x += (mxx / mll * e.speed * 0.85 + dx / dl * e.speed * 0.3) * dt;
+          e.y += (myy / mll * e.speed * 0.85 + dy / dl * e.speed * 0.3) * dt;
+        }
+      } else if (ENEMY_TYPES[e.type].behavior === "shooter" && dl < 340) {
         /* govt drones keep their distance and shoot */
         var far = e.type === "patience" ? 300 : 200;
         if (dl < far) { e.x -= dx / dl * e.speed * dt; e.y -= dy / dl * e.speed * dt; }
@@ -2189,6 +2245,7 @@ var boot = function () {
         /* ?chest / ?seedz — stage the faucet's chest and a field seed for a look */
         if (/chest/.test(location.search)) G.enemies.push({ type: "chest", x: W * 0.66, y: H * 0.42, px: W * 0.66, py: H * 0.42, hp: 22, maxHp: 30, r: 17, speed: 0, seed: 1, stun: 0, shoot: 999, wobble: 0, score: 77 });
         if (/seedz/.test(location.search)) G.orbs.push({ x: W * 0.3, y: H * 0.6, vx: 0, vy: 0, taboshi: true, field: true, r: 5, t: 0 });
+        if (/mimic/.test(location.search)) G.enemies.push({ type: "mimic", x: W * 0.62, y: H * 0.4, px: W * 0.62, py: H * 0.4, hp: 14, maxHp: 14, r: 11, speed: 150, seed: 2, stun: 0, shoot: 999, wobble: 0, score: 77 });
         if (/keyz/.test(location.search)) G.orbs.push({ x: W * 0.34, y: H * 0.55, vx: 0, vy: 0, key: true, r: 5, t: 0 });
         if (/vault/.test(location.search)) {
           G.epoch = 8; G.hasKey = true; G.followers = [];
