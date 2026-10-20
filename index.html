@@ -2,6 +2,14 @@
 <title>Don't Fade the Blue Frog</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#04121d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Blue Frog">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap">
 
 <style>
@@ -197,7 +205,7 @@ body {
   letter-spacing: 1px;
 }
 .btn-minor { padding: 9px 14px 8px; font-size: 12px; margin: 8px auto 0; opacity: 0.92; }
-#codex-open { display: block; }
+#codex-open, #fs-open { display: block; }
 .btn:hover, .btn:focus-visible { background: var(--blue); color: var(--ink); outline: none; }
 .btn:active { transform: translateY(1px); }
 .btn.gold { border-color: var(--gold); }
@@ -411,6 +419,7 @@ body::after {
     </p>
     <button class="btn" id="begin">BEGIN · LEVEL I</button>
     <button class="btn btn-minor" id="codex-open">📜 THE LORE CODEX</button>
+    <button class="btn btn-minor" id="fs-open">⛶ FULL SCREEN</button>
   </div>
 </div>
 
@@ -542,8 +551,10 @@ function audioInit() {
   try {
     AC = new (window.AudioContext || window.webkitAudioContext)();
     master = AC.createGain();
-    master.gain.value = 0.5;
-    master.connect(AC.destination);
+    master.gain.value = 0.85; /* was 0.5 — phone speakers are quiet; a compressor keeps the chords from clipping */
+    var _comp = AC.createDynamicsCompressor();
+    master.connect(_comp);
+    _comp.connect(AC.destination);
   } catch (e) { AC = null; }
 }
 /* pentatonic scale (the taoyuan trick: synth everything, ship no audio files) */
@@ -873,10 +884,12 @@ function setKeeper(k) {
    ===================================================================== */
 
 var canvas = document.getElementById("c");
-var ctx = canvas.getContext("2d");
+var ctx = canvas.getContext("2d", { alpha: false }); /* opaque = the browser skips a whole compositing layer */
 var W = 0, H = 0, DPR = 1;
+var IS_TOUCH = false;
+try { IS_TOUCH = window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window; } catch (e) {}
 function resize() {
-  DPR = Math.min(2, window.devicePixelRatio || 1);
+  DPR = Math.min(IS_TOUCH ? 1.5 : 2, window.devicePixelRatio || 1); /* phones drown in pixels: 1.5 cap */
   W = window.innerWidth; H = window.innerHeight;
   canvas.width = W * DPR; canvas.height = H * DPR;
   canvas.style.width = W + "px"; canvas.style.height = H + "px";
@@ -1516,6 +1529,7 @@ function gameOver() {
 var clouds = [];
 var petals = [];
 var BG_GRAD = null, BG_KEY = "";
+var BG_CACHE = null, BG_CACHE_KEY = ""; /* zone painting: scale ONCE to a small offscreen, blit per frame */
 function bgGrad() {
   var key = W + "x" + H;
   if (BG_GRAD && BG_KEY === key) return BG_GRAD;
@@ -1552,14 +1566,21 @@ function drawPetals() {
   });
   ctx.globalAlpha = 1;
 }
+var GLOW_G = {};
 function glow(x, y, r, rgb, a) {
-  var g = ctx.createRadialGradient(x, y, 0, x, y, r);
-  g.addColorStop(0, "rgba(" + rgb + "," + a + ")");
-  g.addColorStop(1, "rgba(" + rgb + ",0)");
+  var key = r + "|" + rgb + "|" + a;
+  var g = GLOW_G[key];
+  if (!g) { /* cache: one gradient per shape, translated into place — phones hate createRadialGradient in a loop */
+    g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    g.addColorStop(0, "rgba(" + rgb + "," + a + ")");
+    g.addColorStop(1, "rgba(" + rgb + ",0)");
+    GLOW_G[key] = g;
+  }
   ctx.save();
+  ctx.translate(x, y);
   ctx.globalCompositeOperation = "lighter";
   ctx.fillStyle = g;
-  ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill();
   ctx.restore();
 }
 /* the sky above the lore lands: soft teal light from the glade, zone light rising below */
@@ -1707,12 +1728,25 @@ function render(t) {
   /* ground: sky-depth gradient, ambient lore-land light, clouds below, grid */
   ctx.fillStyle = bgGrad();
   ctx.fillRect(-40, -40, W + 80, H + 80);
-  /* each zone walks under its own lotus painting */
-  var zbim = IMG["bg_" + zoneOf(G.epoch).id];
-  if (zbim && zbim.complete && zbim.naturalWidth) {
-    var zsc = Math.max(W / zbim.naturalWidth, H / zbim.naturalHeight);
+  /* each zone walks under its own lotus painting — scaled once to a 0.7 offscreen, then blitted */
+  var zidNow = zoneOf(G.epoch).id;
+  var zkey = zidNow + "@" + W + "x" + H;
+  if (BG_CACHE_KEY !== zkey) {
+    BG_CACHE_KEY = zkey;
+    BG_CACHE = null;
+    var zbim0 = IMG["bg_" + zidNow];
+    if (zbim0 && zbim0.complete && zbim0.naturalWidth) {
+      BG_CACHE = document.createElement("canvas");
+      BG_CACHE.width = Math.max(1, Math.round(W * 0.7));
+      BG_CACHE.height = Math.max(1, Math.round(H * 0.7));
+      var bctx = BG_CACHE.getContext("2d");
+      var zsc0 = Math.max(BG_CACHE.width / zbim0.naturalWidth, BG_CACHE.height / zbim0.naturalHeight);
+      bctx.drawImage(zbim0, (BG_CACHE.width - zbim0.naturalWidth * zsc0) / 2, (BG_CACHE.height - zbim0.naturalHeight * zsc0) / 2, zbim0.naturalWidth * zsc0, zbim0.naturalHeight * zsc0);
+    }
+  }
+  if (BG_CACHE) {
     ctx.globalAlpha = 0.15;
-    ctx.drawImage(zbim, (W - zbim.naturalWidth * zsc) / 2, (H - zbim.naturalHeight * zsc) / 2, zbim.naturalWidth * zsc, zbim.naturalHeight * zsc);
+    ctx.drawImage(BG_CACHE, -W * 0.02, -H * 0.01, W * 1.04, H * 1.02);
     ctx.globalAlpha = 1;
   }  /* the vault has no painting — behind the lore, the covenant rings turn */
   if (zoneOf(G.epoch).id === "vault") {
@@ -2041,6 +2075,12 @@ function showCodex() {
   document.getElementById("codex").hidden = false;
 }
 document.getElementById("codex-open").addEventListener("click", showCodex);
+var _fsbtn = document.getElementById("fs-open");
+if (_fsbtn) _fsbtn.addEventListener("click", function () {
+  var d = document.documentElement;
+  if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen(); }
+  else if (d.requestFullscreen) d.requestFullscreen().catch(function () {});
+});
 document.getElementById("codex-close").addEventListener("click", function () {
   document.getElementById("codex").hidden = true;
 });
