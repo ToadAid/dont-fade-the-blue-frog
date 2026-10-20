@@ -209,6 +209,8 @@ body {
 .skin-hint { margin: 10px auto 6px; font-size: 12px; letter-spacing: 2px; color: var(--dim); }
 .skin-pick { border-color: var(--line); margin: 0; padding: 9px 14px 8px; font-size: 12px; opacity: 0.95; }
 .skin-pick.sel { border-color: var(--gold); color: var(--gold); opacity: 1; }
+.comm-link { text-decoration: none; }
+.comm-link:hover, .skin-pick:hover { opacity: 1; border-color: var(--gold); }
 .btn:hover, .btn:focus-visible { background: var(--blue); color: var(--ink); outline: none; }
 .btn:active { transform: translateY(1px); }
 .btn.gold { border-color: var(--gold); }
@@ -442,6 +444,12 @@ body::after {
     <button class="btn" id="begin">BEGIN · LEVEL I</button>
     <button class="btn btn-minor" id="codex-open">📜 THE LORE CODEX</button>
     <button class="btn btn-minor" id="fs-open">⛶ FULL SCREEN</button>
+    <div class="skin-hint">WHERE THE LORE LIVES · GO STUDY</div>
+    <div class="char-row" id="comm-row">
+      <a class="btn btn-minor skin-pick comm-link" href="https://x.com/toadgod1017" target="_blank" rel="noopener">X · TOADGOD — THE WORD</a>
+      <a class="btn btn-minor skin-pick comm-link" href="https://tobyworld.app" target="_blank" rel="noopener">TOBYWORLD.APP — THE HOME</a>
+      <a class="btn btn-minor skin-pick comm-link" href="https://t.me/toadgang" target="_blank" rel="noopener">TOADGANG — THE PEOPLE</a>
+    </div>
   </div>
 </div>
 
