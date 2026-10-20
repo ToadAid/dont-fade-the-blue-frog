@@ -148,6 +148,15 @@ Patience 165, Taboshi 330, Sat0 440 — a chord that thickens as the wheel fills
 and falls still the moment the world pauses. Nothing is downloaded; the hum is
 born and dies with the wheel, as the lore hums.
 
+## The trial of the word → study mode
+
+The codex is not only a scroll to read: it is a hall to **stand trial** in. It
+shows a saying, and you must name **the day toadgod truly spoke it** — four
+dates, one true. Seven true calls in a row and the codex names you
+**KEEPER OF THE WORD**, and the mark walks onto your death card forever. The
+trial teaches the chronology of the archive: from the first ripple of
+2024-03-17 to the final retweet, in the order it was spoken.
+
 ## The codex → nothing lost in translation
 
 📜 **THE LORE CODEX** on the menu: the seven zones, the keepers, and then **all 132 sayings
