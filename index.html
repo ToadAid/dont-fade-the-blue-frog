@@ -349,7 +349,20 @@ body {
   padding: 4px 9px;
   cursor: pointer;
 }
-#mute:hover { color: var(--bone); }
+#mute:hover, #pausebtn:hover { color: var(--bone); }
+#pausebtn {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 6;
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  color: var(--dim);
+  border: 1px solid var(--line);
+  font-family: inherit;
+  font-size: 16px;
+  padding: 4px 9px;
+  cursor: pointer;
+}
 
 #toast {
   position: fixed;
@@ -457,8 +470,19 @@ body::after {
   </div>
 </div>
 
+<div id="pause" class="overlay" hidden>
+  <div class="panel frame">
+    <h2 class="title">⏸ THE WORLD HOLDS</h2>
+    <p class="subtitle">time itself waits on the faithful</p>
+    <blockquote class="quote" id="pause-quote"></blockquote>
+    <button class="btn gold" id="resume">RESUME · THE WHEEL TURNS</button>
+    <button class="btn btn-minor" id="pause-menu">ABANDON · BACK TO LEVEL I</button>
+  </div>
+</div>
+
 <div id="toast" hidden></div>
 <button id="mute" hidden title="toggle sound">🔊</button>
+<button id="pausebtn" hidden title="pause">⏸</button>
 
 <script>
 "use strict";
@@ -588,7 +612,7 @@ var sfx = {
 function musicStart() {
   if (!AC || musicTimer) return;
   musicTimer = setInterval(function () {
-    if (muted || state() !== "play") return;
+    if (muted || state() !== "play" || (G && G.paused)) return;
     var now = AC.currentTime;
     if (now < nextMusicNote) return;
     nextMusicNote = now + 0.72;
@@ -964,6 +988,7 @@ window.addEventListener("keydown", function (e) {
   var k = e.key.toLowerCase();
   keys[k] = true;
   if (k === "m") toggleMute();
+  if (k === "p" && state() === "play") { if (G.paused) resumeGame(); else pauseGame(); }
   if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].indexOf(k) >= 0) e.preventDefault();
 }, { passive: false });
 window.addEventListener("keyup", function (e) { keys[e.key.toLowerCase()] = false; });
@@ -1521,6 +1546,8 @@ function gameOver() {
   document.getElementById("st-best").textContent = best;
   document.getElementById("hud").hidden = true;
   document.getElementById("patience-wrap").hidden = true;
+  document.getElementById("pausebtn").hidden = true;
+  document.getElementById("pause").hidden = true;
   setTimeout(function () { document.getElementById("over").hidden = false; }, 700);
 }
 
@@ -1982,7 +2009,7 @@ function frame(ts) {
   last = t;
   updatePetals(dt);
   updateClouds(dt);
-  if (G && G.mode === "play") {
+  if (G && G.mode === "play" && !G.paused) {
     update(dt);
     updateHud();
   }
@@ -2033,6 +2060,9 @@ function startGame() {
   document.getElementById("hud").hidden = false;
   document.getElementById("patience-wrap").hidden = false;
   document.getElementById("mute").hidden = false;
+  document.getElementById("pausebtn").hidden = false;
+  if (G) G.paused = false;
+  document.getElementById("pause").hidden = true;
   /* the level banner is toasted by newGame */
 }
 
@@ -2102,6 +2132,48 @@ function toggleMute() {
 }
 document.getElementById("mute").addEventListener("click", toggleMute);
 
+/* ---------------- pause: the world holds its breath ---------------- */
+function pauseGame() {
+  if (!G || G.mode !== "play" || G.paused) return;
+  G.paused = true;
+  var pz = WHISPERS[zoneOf(G.epoch).id] || WHISPERS.glade;
+  document.getElementById("pause-quote").textContent = "❝ " + pz[randInt(0, pz.length - 1)] + " — toadgod";
+  document.getElementById("pause").hidden = false;
+  document.getElementById("pausebtn").hidden = true;
+}
+function resumeGame() {
+  if (!G || !G.paused) return;
+  G.paused = false;
+  document.getElementById("pause").hidden = true;
+  document.getElementById("pausebtn").hidden = false;
+}
+document.getElementById("pausebtn").addEventListener("click", pauseGame);
+document.getElementById("resume").addEventListener("click", resumeGame);
+document.getElementById("pause-menu").addEventListener("click", function () {
+  /* abandon the run — the yield still counts, nothing truly fades */
+  if (G && (G.score | 0)) {
+    var prevBest = 0;
+    try { prevBest = parseInt(localStorage.getItem("tobyworld-best") || "0", 10) || 0; } catch (e) {}
+    if ((G.score | 0) > prevBest) { try { localStorage.setItem("tobyworld-best", String(G.score | 0)); } catch (e) {} }
+  }
+  if (G && G.epoch) {
+    var prevLvl = 0;
+    try { prevLvl = parseInt(localStorage.getItem("tobyworld-best-level") || "0", 10) || 0; } catch (e) {}
+    if (G.epoch > prevLvl) { try { localStorage.setItem("tobyworld-best-level", String(G.epoch)); } catch (e) {} }
+  }
+  if (G) G.paused = false;
+  document.getElementById("pause").hidden = true;
+  document.getElementById("pausebtn").hidden = true;
+  document.getElementById("hud").hidden = true;
+  document.getElementById("patience-wrap").hidden = true;
+  document.getElementById("menu").hidden = false;
+  G = null;
+});
+/* auto-pause when the frog looks away (tab hidden) */
+document.addEventListener("visibilitychange", function () {
+  if (document.hidden && state() === "play" && G && !G.paused) pauseGame();
+});
+
 /* boot through the viewer's update hook when present */
 var boot = function () {
   /* debug: /?over previews the death screen, /?play runs the game (headless screenshots) */
@@ -2110,6 +2182,8 @@ var boot = function () {
       try {
         newGame();
         document.getElementById("menu").hidden = true;
+        document.getElementById("pausebtn").hidden = false;
+        if (/paused/.test(location.search)) pauseGame();
         if (/over/.test(location.search)) gameOver();
         if (/boon/.test(location.search)) endEpoch();
         /* ?chest / ?seedz — stage the faucet's chest and a field seed for a look */
