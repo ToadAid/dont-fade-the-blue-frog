@@ -462,6 +462,7 @@ body::after {
       <a class="btn btn-minor skin-pick comm-link" href="https://tobyworld.app" target="_blank" rel="noopener">TOBYWORLD.APP — THE HOME</a>
       <a class="btn btn-minor skin-pick comm-link" href="https://t.me/toadgang" target="_blank" rel="noopener">TOADGANG — THE PEOPLE</a>
     </div>
+    <div class="skin-hint" id="covenant-note" hidden>⚡ THE COVENANT HOLDS — the game walks offline now · it lives in your hand</div>
   </div>
 </div>
 
@@ -2545,6 +2546,21 @@ document.getElementById("pause-menu").addEventListener("click", function () {
 document.addEventListener("visibilitychange", function () {
   if (document.hidden && state() === "play" && G && !G.paused) pauseGame();
 });
+
+/* THE OFFLINE COVENANT: once the game has walked once, it walks without the server */
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+  navigator.serviceWorker.register("sw.js").then(function () {
+    /* check from both sides (worker and page can be different origins of truth) */
+    var iv = setInterval(function () {
+      if (navigator.serviceWorker.controller) {
+        clearInterval(iv);
+        var cn = document.getElementById("covenant-note");
+        if (cn) cn.hidden = false;
+      }
+    }, 700);
+    setTimeout(function () { clearInterval(iv); }, 15000);
+  }).catch(function () { /* no covenant today; play online */ });
+}
 
 /* boot through the viewer's update hook when present */
 var boot = function () {
