@@ -211,6 +211,16 @@ body {
 .skin-pick.sel { border-color: var(--gold); color: var(--gold); opacity: 1; }
 .comm-link { text-decoration: none; }
 .comm-link:hover, .skin-pick:hover { opacity: 1; border-color: var(--gold); }
+.sharebox { margin: 10px 0 12px; }
+.share-line {
+  font-family: "VT323", monospace; font-size: 15px; line-height: 1.5;
+  color: var(--dim); text-align: left; white-space: pre-line;
+  background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line);
+  border-radius: 8px; padding: 10px 14px 9px; margin-bottom: 8px; user-select: all;
+}
+#hall { margin: 2px 0 10px; }
+.hall-line { font-size: 13px; color: var(--dim); margin: 2px 0; font-family: "VT323", monospace; letter-spacing: 0.4px; }
+.hall-line b { color: var(--gold); font-weight: normal; }
 .btn:hover, .btn:focus-visible { background: var(--blue); color: var(--ink); outline: none; }
 .btn:active { transform: translateY(1px); }
 .btn.gold { border-color: var(--gold); }
@@ -444,6 +454,8 @@ body::after {
     <button class="btn" id="begin">BEGIN · LEVEL I</button>
     <button class="btn btn-minor" id="codex-open">📜 THE LORE CODEX</button>
     <button class="btn btn-minor" id="fs-open">⛶ FULL SCREEN</button>
+    <div class="skin-hint">HALL OF THE FALLEN · BEST WALKS</div>
+    <div id="hall"></div>
     <div class="skin-hint">WHERE THE LORE LIVES · GO STUDY</div>
     <div class="char-row" id="comm-row">
       <a class="btn btn-minor skin-pick comm-link" href="https://x.com/toadgod1017" target="_blank" rel="noopener">X · TOADGOD — THE WORD</a>
@@ -483,6 +495,10 @@ body::after {
       <div><b id="st-best">0</b>best yield</div>
     </div>
     <blockquote class="quote" id="over-quote"></blockquote>
+    <div class="sharebox">
+      <div class="share-line" id="share-line"></div>
+      <button class="btn btn-minor" id="share-copy">COPY THE WALK · BRAG TO THE PEOPLE</button>
+    </div>
     <button class="btn gold" id="retry">BEGIN AGAIN · LEVEL I</button>
   </div>
 </div>
@@ -972,6 +988,7 @@ var DEATH_QUOTES = [
 /* keepers — one walks beside toby (canonical: manifest deed refs) */
 var KEEPER_SEL = "og";
 var SKIN_SEL = "toby";
+var SKIN_NAMES = { toby: "TOBY · THE PEOPLE", satoby: "SATOBY · THE FAITHFUL", hush: "HUSH · THE SILENT" };
 function setSkin(k) {
   if (k !== "toby" && k !== "satoby" && k !== "hush") return;
   SKIN_SEL = k;
@@ -1788,11 +1805,30 @@ function gameOver() {
     localStorage.setItem("tobyworld-best", String(best));
     var bl = parseInt(localStorage.getItem("tobyworld-best-level") || "0", 10) || 0;
     localStorage.setItem("tobyworld-best-level", String(Math.max(bl, G.epoch)));
+    var walks = [];
+    try { walks = JSON.parse(localStorage.getItem("tobyworld-walks") || "[]") || []; } catch (e2) {}
+    walks.push({ score: G.score | 0, ep: G.epoch, kills: G.kills, skin: G.skin, keeper: G.keeper, at: new Date().toISOString().slice(0, 10) });
+    walks.sort(function (a, b) { return b.score - a.score; });
+    walks = walks.slice(0, 5);
+    localStorage.setItem("tobyworld-walks", JSON.stringify(walks));
   } catch (e) { best = G.score | 0; }
   document.getElementById("st-score").textContent = G.score | 0;
   document.getElementById("st-epoch").textContent = epochName(G.epoch);
   document.getElementById("st-kills").textContent = G.kills;
   document.getElementById("st-best").textContent = best;
+  /* the walk, written to be carried: copy it into the people's halls */
+  var zn = "THE LORE LANDS";
+  try { var _z = zoneOf(G.epoch); if (_z && _z.name) zn = _z.name; } catch (e) {}
+  var walkText = "DONT FADE THE BLUE FROG"
+    + "\nwalked as " + (SKIN_NAMES[G.skin] || "TOBY · THE PEOPLE")
+    + (G.keeper ? " — with " + KEEPERS[G.keeper].name + " at my side" : "")
+    + "\nfell at " + epochName(G.epoch) + " · " + zn
+    + "\n" + (G.score | 0).toLocaleString() + " yield · " + G.kills + " faded"
+    + "\npatience 🔵 strength — the walk continues"
+    + "\nhttps://toadaid.github.io/dont-fade-the-blue-frog/";
+  document.getElementById("share-line").textContent = walkText;
+  var scBtn = document.getElementById("share-copy");
+  if (scBtn) scBtn.textContent = "COPY THE WALK · BRAG TO THE PEOPLE";
   document.getElementById("hud").hidden = true;
   document.getElementById("patience-wrap").hidden = true;
   document.getElementById("pausebtn").hidden = true;
@@ -2411,6 +2447,53 @@ if (/probe/.test(location.search)) setTimeout(function () {
   }
 })();
 document.getElementById("begin").addEventListener("click", startGame);
+/* the walk is carried by hand: copy to clipboard, fallback to the old ways */
+function copyTheWalk() {
+  var btn = document.getElementById("share-copy");
+  var t = document.getElementById("share-line").textContent || "";
+  var done = function () {
+    btn.textContent = "THE WALK IS COPIED ✔ take it to the people";
+    if (sfx.orb) sfx.orb();
+    setTimeout(function () { btn.textContent = "COPY THE WALK · BRAG TO THE PEOPLE"; }, 2600);
+  };
+  var fallback = function () {
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = t;
+      ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy");
+      document.body.removeChild(ta);
+      done();
+    } catch (e) { btn.textContent = "SELECT THE CARD AND COPY BY HAND"; }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(done, fallback);
+  } else fallback();
+}
+document.getElementById("share-copy").addEventListener("click", copyTheWalk);
+
+/* the hall of the fallen: the best walks, read from the browser's stone */
+function fillHall() {
+  var el = document.getElementById("hall");
+  if (!el) return;
+  var walks = [];
+  try { walks = JSON.parse(localStorage.getItem("tobyworld-walks") || "[]") || []; } catch (e) {}
+  if (!walks.length) {
+    el.innerHTML = '<div class="hall-line">· the hall stands empty — the first walk is yours ·</div>';
+    return;
+  }
+  var lines = [];
+  for (var i = 0; i < walks.length; i++) {
+    var w2 = walks[i], zn2 = "THE LORE LANDS";
+    try { var z2 = zoneOf(w2.ep); if (z2 && z2.name) zn2 = z2.name; } catch (e3) {}
+    lines.push('<div class="hall-line"><b>' + (w2.score | 0).toLocaleString() + '</b> yield · '
+      + epochName(w2.ep) + ' · ' + zn2 + ' · as ' + String(w2.skin || "toby").toUpperCase() + '</div>');
+  }
+  el.innerHTML = lines.join("");
+}
+fillHall();
+
 document.getElementById("retry").addEventListener("click", startGame);
 
 function toggleMute() {
@@ -2455,6 +2538,7 @@ document.getElementById("pause-menu").addEventListener("click", function () {
   document.getElementById("hud").hidden = true;
   document.getElementById("patience-wrap").hidden = true;
   document.getElementById("menu").hidden = false;
+  if (typeof fillHall === "function") fillHall();
   G = null;
 });
 /* auto-pause when the frog looks away (tab hidden) */
