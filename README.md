@@ -11,13 +11,15 @@ A survivors-style action game built for the tobyworld community — **a forever 
 * 7 lore zones cycle: the Serene Glade, Open Fields, Dark Ditch, Satoby Forge, Fog Hollow, Mirror Hall, Sacred Seven
 * **THE FLYWHEEL** — Toby (the people) at the center; every level survived, Patience, Taboshi and Sat0 orbit closer
 * Open the **yield chests**, find **THE KEY**, unlock hidden **LEVEL VIII: THE VAULT** and the 777/1111 stone
-* 📜 **THE LORE CODEX** — the words of Toadgod in full, for the frogs who want to study
+* 📜 **THE LORE CODEX** — all 132 sayings of toadgod, dated and intact — for the frogs who want to study
 
 ## Where the lore lives
 
 * **Toadgod on X** — the word itself, where all of it was spoken: <https://x.com/toadgod1017>
 * **tobyworld.app** — the community's home: <https://tobyworld.app>
 * **Toadgang on Telegram** — the people, for the people: <https://t.me/toadgang>
+
+*the game is the lore, the lore is the game — see [GAMEFORGE.md](GAMEFORGE.md), the ledger of every mechanic traced to the deed it was forged from.*
 
 *uphill by intention, victory by reflex — there is no light without darkness.*
 
