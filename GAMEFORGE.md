@@ -110,6 +110,24 @@ frogs."* — so the fallen are not trash dropped for points. They are faders, an
 fall they leave a **seed-cocoon** — a spirit glowing inside vines. Claim it and a faded
 frog is **born into your wheel**. Where faded frogs are born, the wheel takes them in.
 
+## The seasons → the world re-forges every 77 days
+
+**Lore TOBY_T073 — Epoch Transition & Expansion, 2024-07-18:** the epochs turn.
+So the world itself turns: every **77 days a season comes**, and its **law binds
+every frog, everywhere** — the mimic walks in every hall, or every seventh zap
+is sacred for all, or patience fills even mid-leap, or every fallen frog seeds
+two cocoons. Individual walks pass; the world's law stays. The seasons began
+**2026-10-20 — season one, day one, THE WAR FORGE.
+
+## The rebirth run → twice-lived
+
+The cocoon already holds a faded frog, born into the wheel. And it holds more:
+**claim a cocoon and it sleeps with you. Fall in THE VAULT holding the key**,
+and instead of the silence the cocoon **opens where you fell** — you return with
+**one heart**, the false toby burned back by the nova of the second birth, and
+the walk is marked **twice-lived**: on your glow, on the death card, in the
+hall. One heart. Once per cocoon. The run that should have ended didn't.
+
 ## The astrolabe → the wheel resets for the faithful
 
 The gold-and-blue wheel with the star compass, the community's own painting. Claim it and
