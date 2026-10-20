@@ -223,6 +223,13 @@ body {
 .hall-line b { color: var(--gold); font-weight: normal; }
 .fd-day { color: var(--gold); letter-spacing: 3px; font-size: 13px; margin-bottom: 10px; }
 .fd-src { color: var(--dim); font-size: 12px; margin: 10px 0 14px; }
+.codex-sp { height: 14px; }
+.trial-ask { color: var(--dim); font-size: 15px; line-height: 1.5; margin: 2px 0 10px; }
+#trial-pick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.trial-btn { padding: 6px 14px 5px; font-size: 13px; }
+.trial-btn.trial-right { border-color: #7cc4a0; color: #9fe0c4; }
+.trial-btn.trial-wrong { border-color: #e05238; color: #e05238; }
+.trial-line { color: var(--dim); font-size: 12px; letter-spacing: 1px; margin-bottom: 4px; }
 .season-line {
   display: block; margin: 12px auto 2px; padding: 8px 16px 7px;
   border: 1px solid var(--gold); color: var(--gold); border-radius: 8px;
@@ -1906,6 +1913,7 @@ function gameOver() {
   document.getElementById("st-kills").textContent = G.kills;
   document.getElementById("st-best").textContent = best;
   /* the walk, written to be carried: copy it into the people's halls */
+  function keeperWord() { try { return localStorage.getItem("tobyworld-keeper-word") === "1" ? "\nkeeper of the word ✔" : ""; } catch (e3) { return ""; } }
   var zn = "THE LORE LANDS";
   try { var _z = zoneOf(G.epoch); if (_z && _z.name) zn = _z.name; } catch (e) {}
   var walkText = "DONT FADE THE BLUE FROG"
@@ -1914,6 +1922,7 @@ function gameOver() {
     + "\nseason " + ((G.season || 0) % SEASONS.length + 1) + " · " + SEASONS[(G.season || 0) % SEASONS.length].name
     + "\nfell at " + epochName(G.epoch) + " · " + zn
     + (G.twiceLived ? "\ntwice-lived \u2014 the cocoon opened where I fell" : "")
+    + keeperWord()
     + "\n" + (G.score | 0).toLocaleString() + " yield · " + G.kills + " faded"
     + "\npatience 🔵 strength — the walk continues"
     + "\nhttps://toadaid.github.io/dont-fade-the-blue-frog/";
@@ -2488,6 +2497,12 @@ function showCodex() {
     codexBuilt = true;
     var list = document.getElementById("codex-list");
     var out = [];
+    /* THE TRIAL OF THE WORD: study mode — which day did toadgod speak it? */
+    out.push('<div class="codex-sec">the trial of the word — study mode</div>');
+    out.push('<div id="trial-ask" class="trial-ask"></div>');
+    out.push('<div id="trial-pick"></div>');
+    out.push('<div class="trial-line" id="trial-line"></div>');
+    out.push('<div class="codex-sp"></div>');
     out.push('<div class="codex-sec">part i · the seven zones</div>');
     ZONES.forEach(function (z, i) {
       out.push('<div class="codex-stamp">level ' + EPOCH_NAMES[i] + ' · ' + esc(z.name) + '</div>');
@@ -2514,8 +2529,73 @@ function showCodex() {
         '<span class="codex-date">' + esc(l.t) + ' · toadgod · ' + esc(l.d) + '</span></div>');
     });
     list.innerHTML = out.join("");
+    trialNext();
   }
   document.getElementById("codex").hidden = false;
+}
+/* THE TRIAL OF THE WORD: pick the day the word was truly spoken */
+var TRIAL = { cur: null };
+function trialBest() {
+  try { return parseInt(localStorage.getItem("tobyworld-best-streak") || "0", 10) || 0; } catch (e) { return 0; }
+}
+function trialStreak() {
+  try { return parseInt(localStorage.getItem("tobyworld-streak") || "0", 10) || 0; } catch (e) { return 0; }
+}
+function trialNext() {
+  TRIAL.cur = CODEX_LORE[randInt(0, CODEX_LORE.length - 1)];
+  var ask = document.getElementById("trial-ask"), pick = document.getElementById("trial-pick");
+  if (!ask || !pick) return;
+  var q = TRIAL.cur.q;
+  if (q.length > 150) q = q.slice(0, 148).trim() + "…";
+  ask.textContent = '"' + q + '"';
+  var days = [], seen = {};
+  for (var i = 0; i < CODEX_LORE.length; i++) {
+    var d = CODEX_LORE[i].d;
+    if (d && d !== TRIAL.cur.d && !seen[d]) { seen[d] = 1; days.push(d); }
+  }
+  while (days.length < 3) {
+    var y = parseInt(String(TRIAL.cur.d).slice(0, 4), 10) || 2024;
+    var m = parseInt(String(TRIAL.cur.d).slice(5, 7), 10) || randInt(1, 12) || 6;
+    var off = randInt(1, 45) * (Math.random() < 0.5 ? -1 : 1);
+    var dt = new Date(Date.UTC(y, m - 1, 1) + off * 86400000);
+    var f = dt.toISOString().slice(0, 10);
+    if (f !== TRIAL.cur.d && !seen[f]) { seen[f] = 1; days.push(f); }
+  }
+  var opts = shuffle(days.slice(0, 3).concat(TRIAL.cur.d));
+  pick.innerHTML = "";
+  opts.forEach(function (d) {
+    var b = document.createElement("button");
+    b.className = "btn btn-minor trial-btn";
+    b.textContent = d;
+    b.addEventListener("click", function () { trialPick(b, d); });
+    pick.appendChild(b);
+  });
+  var line = document.getElementById("trial-line");
+  line.textContent = "streak " + trialStreak() + " · best " + trialBest()
+    + (trialBest() >= 7 ? " · ✔ keeper of the word" : " — seven true calls · ≈ the keeper's mark");
+}
+function trialPick(btn, d) {
+  var right = d === TRIAL.cur.d;
+  var pick = document.getElementById("trial-pick");
+  var kids = pick.querySelectorAll("button");
+  for (var i = 0; i < kids.length; i++) {
+    kids[i].disabled = true;
+    if (kids[i].textContent === TRIAL.cur.d) kids[i].classList.add("trial-right"); /* always show the true day in green */
+
+  }
+  if (right) btn.classList.add("trial-right");
+  else btn.classList.add("trial-wrong");
+  var st = trialStreak(), bs = trialBest();
+  st = right ? st + 1 : 0;
+  bs = Math.max(bs, st);
+  try {
+    localStorage.setItem("tobyworld-streak", String(st));
+    localStorage.setItem("tobyworld-best-streak", String(bs));
+    if (bs >= 7) localStorage.setItem("tobyworld-keeper-word", "1");
+  } catch (e) {}
+  if (right) toast(bs >= 7 ? "KEEPER OF THE WORD ✔ seven true calls" : "THE WORD KNEW YOU \u2726 " + st + " in a row", 2200);
+  else toast("THE WORD FADED FROM YOU — study again", 2200);
+  setTimeout(trialNext, 400);
 }
 document.getElementById("codex-open").addEventListener("click", showCodex);
 var _fsbtn = document.getElementById("fs-open");
