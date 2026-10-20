@@ -221,6 +221,8 @@ body {
 #hall { margin: 2px 0 10px; }
 .hall-line { font-size: 13px; color: var(--dim); margin: 2px 0; font-family: "VT323", monospace; letter-spacing: 0.4px; }
 .hall-line b { color: var(--gold); font-weight: normal; }
+.fd-day { color: var(--gold); letter-spacing: 3px; font-size: 13px; margin-bottom: 10px; }
+.fd-src { color: var(--dim); font-size: 12px; margin: 10px 0 14px; }
 .season-line {
   display: block; margin: 12px auto 2px; padding: 8px 16px 7px;
   border: 1px solid var(--gold); color: var(--gold); border-radius: 8px;
@@ -520,6 +522,15 @@ body::after {
   </div>
 </div>
 
+<div id="firstday" class="overlay" hidden>
+  <div class="panel">
+    <div class="fd-day">THE FIRST DAY</div>
+    <blockquote class="quote" id="fd-quote"></blockquote>
+    <div class="fd-src" id="fd-src"></div>
+    <button class="btn gold" id="fd-begin">INTO THE GLADE · BEGIN</button>
+  </div>
+</div>
+
 <div id="toast" hidden></div>
 <button id="mute" hidden title="toggle sound">🔊</button>
 <button id="pausebtn" hidden title="pause">⏸</button>
@@ -647,6 +658,34 @@ function audioInit() {
   } catch (e) { AC = null; }
 }
 /* pentatonic scale (the taoyuan trick: synth everything, ship no audio files) */
+/* THE WHEEL HUM: every follower carries a voice — the wheel sings what it holds.
+   nothing is downloaded; the hum is born and dies with the wheel */
+var HUM = { voices: [], n: -1 };
+var HUM_NOTE = { toby: 220, patience: 165, taboshi: 330, sato: 440 };
+function humVoices() {
+  var alive = (AC && master && !muted && G && G.mode === "play" && !G.paused && G.followers) ? G.followers.length : 0;
+  if (alive === HUM.n) return;
+  HUM.n = alive;
+  try {
+    var vol = 0.15 / (1 + alive * 0.11); /* the hum thickens as the wheel fills, but never drowns */
+    for (var i = 0; i < HUM.voices.length; i++) {
+      var v = HUM.voices[i];
+      try { v.g.gain.linearRampToValueAtTime(0.0001, AC.currentTime + 0.7); v.o.stop(AC.currentTime + 0.8); } catch (e2) {}
+    }
+    HUM.voices = [];
+    for (var j = 0; j < alive; j++) {
+      var o = AC.createOscillator(), g = AC.createGain();
+      o.type = "sine";
+      o.frequency.value = HUM_NOTE[G.followers[j].kind] || 220;
+      g.gain.setValueAtTime(0.0001, AC.currentTime);
+      g.gain.linearRampToValueAtTime(vol, AC.currentTime + 1.4);
+      o.connect(g); g.connect(master);
+      o.start();
+      HUM.voices.push({ o: o, g: g });
+    }
+  } catch (e) {}
+}
+
 var SCALE = [220, 247, 277, 330, 370, 440, 494, 554, 660, 740, 880];
 function beep(freq, dur, type, gain, slideTo) {
   if (!AC || muted) return;
@@ -2368,6 +2407,7 @@ function updateHud() {
 var last = 0;
 function frame(ts) {
   requestAnimationFrame(frame);
+  humVoices();
   var t = ts / 1000;
   var dt = Math.min(0.05, t - last);
   last = t;
@@ -2567,6 +2607,23 @@ function fillHall() {
 fillHall();
 fillSeason();
 
+/* THE FIRST DAY: a frog walks the way the lore began — once */
+function hadFirstDay() { try { return localStorage.getItem("tobyworld-firstday") === "1"; } catch (e) { return true; } }
+function showFirstDay() {
+  var q = null;
+  for (var i = 0; i < CODEX_LORE.length; i++) if (CODEX_LORE[i].t === "DontFadeBlueFrog") { q = CODEX_LORE[i]; break; }
+  document.getElementById("fd-quote").textContent = '"' + (q ? q.q : "dont fade the blue frog") + '"';
+  document.getElementById("fd-src").textContent = (q ? q.d : "2024-03-17") + " · toadgod · the first day";
+  document.getElementById("firstday").hidden = false;
+  pauseGame();
+}
+document.getElementById("fd-begin").addEventListener("click", function () {
+  try { localStorage.setItem("tobyworld-firstday", "1"); } catch (e) {}
+  document.getElementById("firstday").hidden = true;
+  resumeGame();
+  toast("THE CODEX HOLDS ALL 132 \u2014 study frog life", 2600);
+});
+
 document.getElementById("retry").addEventListener("click", startGame);
 
 function toggleMute() {
@@ -2666,6 +2723,7 @@ var boot = function () {
           G.orbs.push({ x: W * 0.3, y: H * 0.68, vx: 0, vy: 0, stone: true, field: true, r: 5, t: 0 });
           zoneToast(G.epoch, 1900);
         }
+        if (!hadFirstDay()) { try { showFirstDay(); } catch (e2) {} }
       } catch (e) {}
     }, 40);
   }

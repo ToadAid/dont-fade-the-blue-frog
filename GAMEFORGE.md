@@ -134,6 +134,20 @@ The gold-and-blue wheel with the star compass, the community's own painting. Cla
 **the wheel resets for the faithful** — an early epoch turn, a bonus boon on the spot.
 It reads the wheel. It is the wheel.
 
+## The first day → the walk opens as the lore opened
+
+A fresh frog does not begin mid-charge. The very first press of BEGIN opens the
+archive's first saying, dated on the stone — **Lore TOBY_T003, 2024-03-17,
+the first day**: *"dont fade the blue frog."* One breath, one tap, then the
+glade. Only once — the second walk is yours.
+
+## The wheel hum → every follower carries a voice
+
+The flywheel is not silent. Each follower hums its own tone — Toby 220,
+Patience 165, Taboshi 330, Sat0 440 — a chord that thickens as the wheel fills
+and falls still the moment the world pauses. Nothing is downloaded; the hum is
+born and dies with the wheel, as the lore hums.
+
 ## The codex → nothing lost in translation
 
 📜 **THE LORE CODEX** on the menu: the seven zones, the keepers, and then **all 132 sayings
