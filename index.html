@@ -425,6 +425,7 @@ body::after {
     <div class="char-row" id="skin-row">
       <button class="btn btn-minor skin-pick sel" data-skin="toby">TOBY · THE PEOPLE</button>
       <button class="btn btn-minor skin-pick" data-skin="satoby">SATOBY · THE FAITHFUL</button>
+      <button class="btn btn-minor skin-pick" data-skin="hush">HUSH · THE SILENT</button>
     </div>
     <blockquote class="quote">
       "As a toad bides time in a serene glade, I teach patience, let frail grips fade, and promise gifts to those who've stayed."
@@ -559,6 +560,7 @@ loadImg("key", KEY_DATA); loadImg("stone", STONE_DATA);
 var _caseimg = loadImg("case", SEED_DATA); /* the faucet's glass case — rests on the reset altar */
 var _sat0img2 = loadImg("sat0", KEEPER_DATA.sat0); /* the chrome orb rides the cycle */
 var _satobyimg = loadImg("satoby", KEEPER_DATA.satoby); /* the gold frog walks as the player */
+var _hushimg = loadImg("hushplayer", KEEPER_DATA.hush); /* the gray frog too — silence takes its walk */
 /* the ghost frog: toby's shape, faded — built once at boot so phones never pay ctx.filter */
 var _faderBuilt = false;
 function buildGhost() {
@@ -960,7 +962,7 @@ var DEATH_QUOTES = [
 var KEEPER_SEL = "og";
 var SKIN_SEL = "toby";
 function setSkin(k) {
-  if (k !== "toby" && k !== "satoby") return;
+  if (k !== "toby" && k !== "satoby" && k !== "hush") return;
   SKIN_SEL = k;
   try { localStorage.setItem("tobyworld-skin", k); } catch (e) {}
   var b = document.querySelectorAll(".skin-pick");
@@ -969,10 +971,10 @@ function setSkin(k) {
   }
 }
 var KEEPERS = {
-  og:     { name: "OG",     color: "#3aa0ff", desc: "+1 zap strand" },
-  hush:   { name: "HUSH",   color: "#c3c3cf", desc: "silence pulse" },
-  satoby: { name: "SATOBY", color: "#f2c14e", desc: "yield ×1.3" },
-  sat0:   { name: "SAT0",   color: "#1f6fd6", desc: "🌀 speed & zap rate" }
+  og:     { name: "OG",     color: "#3aa0ff", desc: "+1 zap · IT zaps too" },
+  hush:   { name: "HUSH",   color: "#c3c3cf", desc: "silence pulse · clears bullets" },
+  satoby: { name: "SATOBY", color: "#f2c14e", desc: "yield ×1.3 · pours orbs" },
+  sat0:   { name: "SAT0",   color: "#1f6fd6", desc: "🌀 speed · burns the chase" }
 };
 function setKeeper(k) {
   if (!KEEPERS[k]) return;
@@ -1056,6 +1058,12 @@ function newGame() {
     G.stats.patRate *= 1.35;
     G.stats.zapRange *= 0.8;
     G.stats.yieldMul *= 1.45;
+  } else if (G.skin === "hush") {
+    /* the silent one: deliberate feet, a quicker stillness, and the hall listens */
+    G.stats.speed *= 0.96;
+    G.stats.patRate *= 1.2;
+    G.stats.zapCdMax *= 1.06;
+    G.hushPulse = 10;
   }
 
   /* debug: /?wheel stages a mid-game flywheel for a look */
@@ -1071,6 +1079,7 @@ function newGame() {
   }
   zoneToast(G.epoch, 1900);
   if (SKIN_SEL === "satoby") toast("THE FAITHFUL WALKS \u2726 quick feet, patient heart, thin hide", 3000);
+  else if (SKIN_SEL === "hush") toast("SILENCE WALKS \u25ca every ten rings the hall goes still", 3000);
 }
 
 /* ---------------- input ---------------- */
@@ -1301,6 +1310,21 @@ function update(dt) {
   G.peakPat = Math.max(G.peakPat, G.pat);
   if (G.pat >= 1) doStillness();
 
+  /* --- the silent walk: the hall listens for its keeper --- */
+  if (G.skin === "hush") {
+    G.hushPulse = (G.hushPulse === undefined ? 10 : G.hushPulse) - dt;
+    if (G.hushPulse <= 0) {
+      G.hushPulse = 10;
+      for (var hpz = G.enemies.length - 1; hpz >= 0; hpz--) {
+        var hpe = G.enemies[hpz];
+        if (dist2(hpe.x, hpe.y, G.px, G.py) < 190 * 190) hpe.stun = Math.max(hpe.stun, 0.85);
+      }
+      G.novas.push({ x: G.px, y: G.py, r: 0, max: 190, dmg: 0.3, silent: true });
+      addText(G.px, G.py - 30, "HUSH", "#c3c3cf", 18);
+      beep(SCALE[2], 0.5, "sine", 0.03);
+    }
+  }
+
   /* --- keeper companion --- */
   if (G.keeper) {
     var ka = t * 1.1 + Math.PI * 0.65;
@@ -1316,9 +1340,50 @@ function update(dt) {
           var he = G.enemies[hz];
           if (dist2(he.x, he.y, G.kx, G.ky) < 140 * 140) he.stun = Math.max(he.stun, 1);
         }
+        G.novas.push({ x: G.kx, y: G.ky, r: 0, max: 140, dmg: 0.22, silent: true });
         G.stillnessT = 0.5; G.stillnessR = 140;
         addText(G.kx, G.ky - 24, "HUSH", "#c3c3cf", 18);
         sfx.orb();
+      }
+    } else if (G.keeper === "og") {
+      /* the OG's strand fires beside you — the oldest keeper does not watch */
+      G.kPowT = (G.kPowT || 0) - dt;
+      if (G.kPowT <= 0) {
+        var kt = null, kd = 380 * 380;
+        for (var oz = 0; oz < G.enemies.length; oz++) {
+          var oe = G.enemies[oz];
+          if (oe.hp <= 0) continue;
+          var od = dist2(oe.x, oe.y, G.kx, G.ky);
+          if (od < kd) { kd = od; kt = oe; }
+        }
+        if (kt) {
+          G.kPowT = 1.7;
+          kt.hp -= (2 + G.stats.zapDmg);
+          G.zaps.push({ x1: G.kx, y1: G.ky, x2: kt.x, y2: kt.y, life: 0.14 });
+          addParts(kt.x, kt.y, "#3aa0ff", 2, 90);
+          sfx.zap();
+        } else G.kPowT = 0.5;
+      }
+    } else if (G.keeper === "satoby") {
+      /* the faithful pours yield — faith is not passive */
+      G.kPowT = (G.kPowT || 0) - dt;
+      if (G.kPowT <= 0) {
+        G.kPowT = 9;
+        G.orbs.push({ x: G.kx + rand(-14, 14), y: G.ky + rand(-14, 14), vx: rand(-40, 40), vy: rand(-40, 40), field: true, r: 4, t: rand(0, TAU) });
+        addParts(G.kx, G.ky, "#f2c14e", 5, 90);
+        sfx.orb();
+      }
+    } else if (G.keeper === "sat0") {
+      /* the chrome orb burns and repels whatever crowds its side */
+      for (var sz = G.enemies.length - 1; sz >= 0; sz--) {
+        var se = G.enemies[sz];
+        var sd = dist2(se.x, se.y, G.kx, G.ky);
+        if (sd < 95 * 95 && se.hp > 0) {
+          se.hp -= 4.5 * dt;
+          var s0q = Math.sqrt(sd) || 1;
+          se.x += (se.x - G.kx) / s0q * 30 * dt;
+          se.y += (se.y - G.ky) / s0q * 30 * dt;
+        }
       }
     }
   }
@@ -1459,6 +1524,10 @@ function update(dt) {
     }
     if (dist2(e.x, e.y, G.px, G.py) < (e.r + 13) * (e.r + 13)) hurtPlayer();
   }
+  /* whoever bled out from a keeper's hand, dies here */
+  for (i = G.enemies.length - 1; i >= 0; i--) {
+    if (G.enemies[i].hp <= 0) killEnemy(i);
+  }
 
   /* --- enemy bullets --- */
   for (i = G.bullets.length - 1; i >= 0; i--) {
@@ -1478,6 +1547,7 @@ function update(dt) {
       var ee = G.enemies[j];
       if (dist2(ee.x, ee.y, nv.x, nv.y) < nv.r * nv.r && dist2(ee.x, ee.y, nv.x, nv.y) > 0) {
         ee.hp -= nv.dmg * dt * 12;
+        if (nv.silent) ee.stun = Math.max(ee.stun, 0.85);
         if (ee.hp <= 0) killEnemy(j);
       }
     }
@@ -1800,8 +1870,10 @@ function drawToby(ctx, t) {
   var s = 38;
   var img = SPR.toby;
   if (G.skin === "satoby" && IMG.satoby && IMG.satoby.complete && IMG.satoby.naturalWidth) img = IMG.satoby;
+  else if (G.skin === "hush" && IMG.hushplayer && IMG.hushplayer.complete && IMG.hushplayer.naturalWidth) img = IMG.hushplayer;
   if (G.skin === "satoby") glow(0, 0, 34, "242,193,78", 0.16);
-  ctx.shadowColor = G.skin === "satoby" ? "#f2c14e" : "#3aa0ff"; ctx.shadowBlur = 16;
+  else if (G.skin === "hush") glow(0, 0, 34, "195,195,207", 0.15);
+  ctx.shadowColor = G.skin === "satoby" ? "#f2c14e" : G.skin === "hush" ? "#c3c3cf" : "#3aa0ff"; ctx.shadowBlur = 16;
   if (img && img.complete && img.naturalWidth) {
     ctx.drawImage(img, -s / 2, -s / 2 - (s - s * sq) / 2, s, s * sq);
   } else {
@@ -2027,8 +2099,8 @@ function render(t) {
 
   /* novas */
   G.novas.forEach(function (nv) {
-    glow(nv.x, nv.y, Math.max(12, nv.r), "58,160,255", 0.25);
-    ctx.strokeStyle = "rgba(58,160,255,0.7)";
+    glow(nv.x, nv.y, Math.max(12, nv.r), nv.silent ? "195,195,207" : "58,160,255", 0.25);
+    ctx.strokeStyle = nv.silent ? "rgba(195,195,207,0.7)" : "rgba(58,160,255,0.7)";
     ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(nv.x, nv.y, nv.r, 0, TAU); ctx.stroke();
     ctx.lineWidth = 1;
@@ -2321,6 +2393,7 @@ var boot = function () {
     setTimeout(function () {
       try {
         if (/satoby/.test(location.search)) SKIN_SEL = "satoby";
+        if (/hush/.test(location.search)) SKIN_SEL = "hush";
         newGame();
         document.getElementById("menu").hidden = true;
         document.getElementById("pausebtn").hidden = false;
