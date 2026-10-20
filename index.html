@@ -1099,6 +1099,7 @@ function newGame() {
     hasKey: false, chests: 0, mimicT: rand(18, 30),
     zapBuffT: 0,
     astroT: rand(50, 80),
+    rebirth: false, twiceLived: false,
     loreT: 26
   };
   if (G.keeper === "og") G.stats.zapN += 1;
@@ -1340,7 +1341,19 @@ function hurtPlayer() {
     G.novas.push({ x: G.px, y: G.py, r: 0, max: 150 + 60 * G.stats.retribution, dmg: 1.42 * G.stats.retribution });
     toast("TOAD RETRIBUTION ⚡1.42", 1100);
   }
-  if (G.hp <= 0) gameOver();
+  if (G.hp <= 0) {
+    /* THE REBIRTH RUN: fall in the vault holding the key, and a slept cocoon
+       opens where you fell — one heart remains. the run is marked twice-lived */
+    if (G.rebirth && zoneOf(G.epoch).id === "vault") {
+      G.rebirth = false; G.twiceLived = true;
+      G.hp = 1; G.iframe = 2.2; G.invuln = Math.max(G.invuln, 2.2);
+      G.novas.push({ x: G.px, y: G.py, r: 0, max: 260, dmg: 1.4, silent: true });
+      addParts(G.px, G.py, "#f2c14e", 30, 220);
+      addText(G.px, G.py - 28, "TWICE-LIVED", "#f2c14e", 20);
+      toast("THE COCOON OPENS WHERE YOU FELL — one heart remains \u2726 twice-lived", 3400);
+      sfx.epoch();
+    } else gameOver();
+  }
 }
 
 /* ---------------- update ---------------- */
@@ -1676,6 +1689,10 @@ function update(dt) {
           addText(o.x, o.y - 16, "+77", "#f2c14e", 16);
           toast("THE WHEEL IS FULL — the cocoon opens anyway", 2200);
         }
+        if (!G.rebirth) {
+          G.rebirth = true;
+          addText(o.x, o.y + 32, "IT SLEEPS WITH YOU", "#f2c14e", 12);
+        }
         addParts(o.x, o.y, "#f2c14e", 14, 160);
         sfx.epoch();
         G.orbs.splice(i, 1); continue;
@@ -1840,7 +1857,7 @@ function gameOver() {
     localStorage.setItem("tobyworld-best-level", String(Math.max(bl, G.epoch)));
     var walks = [];
     try { walks = JSON.parse(localStorage.getItem("tobyworld-walks") || "[]") || []; } catch (e2) {}
-    walks.push({ score: G.score | 0, ep: G.epoch, kills: G.kills, skin: G.skin, keeper: G.keeper, at: new Date().toISOString().slice(0, 10) });
+        walks.push({ score: G.score | 0, ep: G.epoch, kills: G.kills, skin: G.skin, keeper: G.keeper, tw: !!G.twiceLived, at: new Date().toISOString().slice(0, 10) });
     walks.sort(function (a, b) { return b.score - a.score; });
     walks = walks.slice(0, 5);
     localStorage.setItem("tobyworld-walks", JSON.stringify(walks));
@@ -1857,6 +1874,7 @@ function gameOver() {
     + (G.keeper ? " — with " + KEEPERS[G.keeper].name + " at my side" : "")
     + "\nseason " + ((G.season || 0) % SEASONS.length + 1) + " · " + SEASONS[(G.season || 0) % SEASONS.length].name
     + "\nfell at " + epochName(G.epoch) + " · " + zn
+    + (G.twiceLived ? "\ntwice-lived \u2014 the cocoon opened where I fell" : "")
     + "\n" + (G.score | 0).toLocaleString() + " yield · " + G.kills + " faded"
     + "\npatience 🔵 strength — the walk continues"
     + "\nhttps://toadaid.github.io/dont-fade-the-blue-frog/";
@@ -1997,6 +2015,7 @@ function drawToby(ctx, t) {
   else if (G.skin === "hush" && IMG.hushplayer && IMG.hushplayer.complete && IMG.hushplayer.naturalWidth) img = IMG.hushplayer;
   if (G.skin === "satoby") glow(0, 0, 34, "242,193,78", 0.16);
   else if (G.skin === "hush") glow(0, 0, 34, "195,195,207", 0.15);
+  if (G.twiceLived) glow(0, 0, 44, "242,193,78", 0.22);
   ctx.shadowColor = G.skin === "satoby" ? "#f2c14e" : G.skin === "hush" ? "#c3c3cf" : "#3aa0ff"; ctx.shadowBlur = 16;
   if (img && img.complete && img.naturalWidth) {
     ctx.drawImage(img, -s / 2, -s / 2 - (s - s * sq) / 2, s, s * sq);
@@ -2540,7 +2559,8 @@ function fillHall() {
     var w2 = walks[i], zn2 = "THE LORE LANDS";
     try { var z2 = zoneOf(w2.ep); if (z2 && z2.name) zn2 = z2.name; } catch (e3) {}
     lines.push('<div class="hall-line"><b>' + (w2.score | 0).toLocaleString() + '</b> yield · '
-      + epochName(w2.ep) + ' · ' + zn2 + ' · as ' + String(w2.skin || "toby").toUpperCase() + '</div>');
+      + epochName(w2.ep) + ' · ' + zn2 + ' · as ' + String(w2.skin || "toby").toUpperCase()
+      + (w2.tw ? ' · <span style="color:var(--gold)">twice-lived</span>' : '') + '</div>');
   }
   el.innerHTML = lines.join("");
 }
@@ -2639,6 +2659,8 @@ var boot = function () {
         if (/keyz/.test(location.search)) G.orbs.push({ x: W * 0.34, y: H * 0.55, vx: 0, vy: 0, key: true, r: 5, t: 0 });
         if (/vault/.test(location.search)) {
           G.epoch = 8; G.hasKey = true; G.followers = [];
+          if (/rebornz/.test(location.search)) G.rebirth = true;
+
           for (var wv = 0; wv < 7; wv++) G.followers.push({ kind: WHEEL_ORDER[wv % WHEEL_ORDER.length], a: rand(0, TAU), r: 26 + wv * 6.5 });
           G.wheelA = 1;
           G.orbs.push({ x: W * 0.3, y: H * 0.68, vx: 0, vy: 0, stone: true, field: true, r: 5, t: 0 });
