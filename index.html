@@ -206,6 +206,9 @@ body {
 }
 .btn-minor { padding: 9px 14px 8px; font-size: 12px; margin: 8px auto 0; opacity: 0.92; }
 #codex-open, #fs-open { display: block; }
+.skin-hint { margin: 10px auto 6px; font-size: 12px; letter-spacing: 2px; color: var(--dim); }
+.skin-pick { border-color: var(--line); margin: 0; padding: 9px 14px 8px; font-size: 12px; opacity: 0.95; }
+.skin-pick.sel { border-color: var(--gold); color: var(--gold); opacity: 1; }
 .btn:hover, .btn:focus-visible { background: var(--blue); color: var(--ink); outline: none; }
 .btn:active { transform: translateY(1px); }
 .btn.gold { border-color: var(--gold); }
@@ -418,6 +421,11 @@ body::after {
     </div>
     <div class="keeper-hint">KEEPERS · ONE WALKS WITH YOU — CHOOSE</div>
     <div class="char-row" id="keeper-row" hidden></div>
+    <div class="skin-hint">WALK AS · THE FROG YOU ARE</div>
+    <div class="char-row" id="skin-row">
+      <button class="btn btn-minor skin-pick sel" data-skin="toby">TOBY · THE PEOPLE</button>
+      <button class="btn btn-minor skin-pick" data-skin="satoby">SATOBY · THE FAITHFUL</button>
+    </div>
     <blockquote class="quote">
       "As a toad bides time in a serene glade, I teach patience, let frail grips fade, and promise gifts to those who've stayed."
       <small>Serene Glade Riddle · Toadgod · Epoch 0</small>
@@ -550,6 +558,7 @@ var STONE_DATA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAG4AAACGCAYAAAA8
 loadImg("key", KEY_DATA); loadImg("stone", STONE_DATA);
 var _caseimg = loadImg("case", SEED_DATA); /* the faucet's glass case — rests on the reset altar */
 var _sat0img2 = loadImg("sat0", KEEPER_DATA.sat0); /* the chrome orb rides the cycle */
+var _satobyimg = loadImg("satoby", KEEPER_DATA.satoby); /* the gold frog walks as the player */
 var _howtocase = document.getElementById("howto-case"); if (_howtocase) _howtocase.src = SEED_DATA; /* lore, shown honestly */
 /* =====================================================================
    TOBYWORLD: DON'T FADE THE BLUE FROG
@@ -909,6 +918,16 @@ var DEATH_QUOTES = [
 
 /* keepers — one walks beside toby (canonical: manifest deed refs) */
 var KEEPER_SEL = "og";
+var SKIN_SEL = "toby";
+function setSkin(k) {
+  if (k !== "toby" && k !== "satoby") return;
+  SKIN_SEL = k;
+  try { localStorage.setItem("tobyworld-skin", k); } catch (e) {}
+  var b = document.querySelectorAll(".skin-pick");
+  for (var i = 0; i < b.length; i++) {
+    b[i].classList.toggle("sel", b[i].getAttribute("data-skin") === k);
+  }
+}
 var KEEPERS = {
   og:     { name: "OG",     color: "#3aa0ff", desc: "+1 zap strand" },
   hush:   { name: "HUSH",   color: "#c3c3cf", desc: "silence pulse" },
@@ -976,6 +995,7 @@ function newGame() {
     shake: 0, flash: 0, stillnessT: 0, stillnessR: 0,
     time: now,
     keeper: KEEPER_SEL,
+    skin: SKIN_SEL,
     kx: W / 2 + 34,
     ky: H / 2,
     hushT: 10,
@@ -989,6 +1009,14 @@ function newGame() {
   if (G.keeper === "og") G.stats.zapN += 1;
   if (G.keeper === "satoby") G.stats.yieldMul *= 1.3;
   if (G.keeper === "sat0") { G.stats.speed *= 1.15; G.stats.zapCdMax *= 0.85; }
+  if (G.skin === "satoby") {
+    /* the faithful gold: quick feet, a patient heart, a thinner hide, a tighter reach */
+    G.hp = 3; G.maxHp = 3;
+    G.stats.speed *= 1.12;
+    G.stats.patRate *= 1.35;
+    G.stats.zapRange *= 0.8;
+    G.stats.yieldMul *= 1.45;
+  }
 
   /* debug: /?wheel stages a mid-game flywheel for a look */
   if (/wheel/.test(location.search)) {
@@ -1002,6 +1030,7 @@ function newGame() {
     }
   }
   zoneToast(G.epoch, 1900);
+  if (SKIN_SEL === "satoby") toast("THE FAITHFUL WALKS \u2726 quick feet, patient heart, thin hide", 3000);
 }
 
 /* ---------------- input ---------------- */
@@ -1730,7 +1759,9 @@ function drawToby(ctx, t) {
   var sq = moving ? 0.93 + 0.07 * Math.sin(t * 13) : 1;
   var s = 38;
   var img = SPR.toby;
-  ctx.shadowColor = "#3aa0ff"; ctx.shadowBlur = 16;
+  if (G.skin === "satoby" && IMG.satoby && IMG.satoby.complete && IMG.satoby.naturalWidth) img = IMG.satoby;
+  if (G.skin === "satoby") glow(0, 0, 34, "242,193,78", 0.16);
+  ctx.shadowColor = G.skin === "satoby" ? "#f2c14e" : "#3aa0ff"; ctx.shadowBlur = 16;
   if (img && img.complete && img.naturalWidth) {
     ctx.drawImage(img, -s / 2, -s / 2 - (s - s * sq) / 2, s, s * sq);
   } else {
@@ -2178,6 +2209,19 @@ if (/probe/.test(location.search)) setTimeout(function () {
     " panelW=" + pn.offsetWidth + " panelSW=" + pn.scrollWidth +
     " rowW=" + kr.offsetWidth + " rowSW=" + kr.scrollWidth + " rowH=" + kr.offsetHeight;
 }, 200);
+(function () {
+  var sv = null;
+  try { sv = localStorage.getItem("tobyworld-skin"); } catch (e) {}
+  if (sv) setSkin(sv);
+  var skins = document.querySelectorAll(".skin-pick");
+  for (var i = 0; i < skins.length; i++) {
+    skins[i].addEventListener("click", function () {
+      setSkin(this.getAttribute("data-skin"));
+      audioInit();
+      if (sfx.orb) sfx.orb();
+    });
+  }
+})();
 document.getElementById("begin").addEventListener("click", startGame);
 document.getElementById("retry").addEventListener("click", startGame);
 
@@ -2236,6 +2280,7 @@ var boot = function () {
   if (/play|over|boon|chest|seedz/.test(location.search)) {
     setTimeout(function () {
       try {
+        if (/satoby/.test(location.search)) SKIN_SEL = "satoby";
         newGame();
         document.getElementById("menu").hidden = true;
         document.getElementById("pausebtn").hidden = false;
