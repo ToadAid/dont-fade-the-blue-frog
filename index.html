@@ -221,6 +221,11 @@ body {
 #hall { margin: 2px 0 10px; }
 .hall-line { font-size: 13px; color: var(--dim); margin: 2px 0; font-family: "VT323", monospace; letter-spacing: 0.4px; }
 .hall-line b { color: var(--gold); font-weight: normal; }
+.season-line {
+  display: block; margin: 12px auto 2px; padding: 8px 16px 7px;
+  border: 1px solid var(--gold); color: var(--gold); border-radius: 8px;
+  font-size: 12px; letter-spacing: 1px; max-width: 92%;
+}
 .btn:hover, .btn:focus-visible { background: var(--blue); color: var(--ink); outline: none; }
 .btn:active { transform: translateY(1px); }
 .btn.gold { border-color: var(--gold); }
@@ -451,6 +456,7 @@ body::after {
       The clock resets and the lore lands change — <span class="g">seven zones</span>, each level one zone, each zone one lesson from the word of toadgod. The giants <span class="r">turn their gaze</span> past level VIII.<br>
       Now and then <span class="g">the open faucet</span> ⛲ drops a <span class="g">taboshi seed</span> <img class="howto-case" id="howto-case" alt="taboshi seed">on the field — claim it and your zaps surge. And listen: <span class="k">the toadgod speaks while you fight.</span> The game is the lore, the lore is the game.
     </p>
+    <div id="season-line" class="season-line" hidden></div>
     <button class="btn" id="begin">BEGIN · LEVEL I</button>
     <button class="btn btn-minor" id="codex-open">📜 THE LORE CODEX</button>
     <button class="btn btn-minor" id="fs-open">⛶ FULL SCREEN</button>
@@ -963,6 +969,23 @@ var WHISPERS = {
    every level survived turns the wheel — the people gather, patience turns,
    taboshi yields, sat0 spins the cycle — until the wheel grows around you */
 var WHEEL_ORDER = ["toby", "patience", "taboshi", "sato"];
+
+/* THE SEASONS: every 77 days the world re-forges itself. each season is a lore
+   deed with a LAW — one rule that binds every frog, everywhere, for 77 days */
+var SEASON_START = Date.UTC(2026, 9, 20); /* the day the seasons began */
+var SEASONS = [
+  { name: "THE WAR FORGE",    law: "mimic",  lawLine: "the false toby walks in every hall" },
+  { name: "THE SACRED SEVENS", law: "sevens", lawLine: "every seventh zap is sacred, for all frogs" },
+  { name: "THE STONE STANDS",  law: "stone",  lawLine: "patience fills even mid-leap, +50%" },
+  { name: "THE FALLEN RISE",   law: "fallen", lawLine: "every fallen frog seeds two cocoons" }
+];
+function seasonNow() {
+  var ov = 0, m = /[?&]season=(-?\d+)/.exec(location.search || "");
+  if (m) ov = parseInt(m[1], 10) || 0;
+  var day = Math.max(0, Math.floor((Date.now() - SEASON_START) / 86400000) + ov * 77);
+  var idx = Math.floor(day / 77);
+  return { i: idx, dayIn: (day % 77) + 1, s: SEASONS[idx % SEASONS.length] };
+}
 var WHEEL_INFO = {
   toby:     { toast: "THE PEOPLE GATHER — a toby joins your wheel",      note: "the people believe: yield grows" },
   patience: { toast: "PATIENCE TURNS — patience joins your wheel",       note: "the wheel steadies: zaps quicker" },
@@ -1095,6 +1118,13 @@ function newGame() {
     G.stats.zapCdMax *= 1.06;
     G.hushPulse = 10;
   }
+  /* the season's law binds the whole walk */
+  var se = seasonNow();
+  G.season = se.i;
+  if (se.s.law === "sevens") G.stats.sevens = true;
+  if (se.s.law === "stone") G.stats.patRate *= 1.5;
+  if (se.s.law === "fallen") G.cocoonMul = 2;
+  if (se.s.law === "mimic") G.mimicT = rand(12, 22);
 
   /* debug: /?wheel stages a mid-game flywheel for a look */
   if (/wheel/.test(location.search)) {
@@ -1110,6 +1140,8 @@ function newGame() {
   zoneToast(G.epoch, 1900);
   if (SKIN_SEL === "satoby") toast("THE FAITHFUL WALKS \u2726 quick feet, patient heart, thin hide", 3000);
   else if (SKIN_SEL === "hush") toast("SILENCE WALKS \u25ca every ten rings the hall goes still", 3000);
+  var sea = seasonNow();
+  toast("SEASON " + (sea.i + 1) + " \u2014 " + sea.s.name + " \u00b7 law: " + sea.s.lawLine, 3400);
 }
 
 /* ---------------- input ---------------- */
@@ -1271,7 +1303,7 @@ function killEnemy(i) {
     }
   }
   addParts(e.x, e.y, e.type === "ego" ? "#f2c14e" : e.type === "macro" ? "#c73b2d" : "#8b78a8", 7);
-  if (e.type === "fader" && Math.random() < 0.07) G.orbs.push({ x: e.x, y: e.y, vx: rand(-30, 30), vy: rand(-30, 30), cocoon: true, field: true, r: 5, t: rand(0, TAU) });
+  if (e.type === "fader" && Math.random() < 0.07 * (G.cocoonMul || 1)) G.orbs.push({ x: e.x, y: e.y, vx: rand(-30, 30), vy: rand(-30, 30), cocoon: true, field: true, r: 5, t: rand(0, TAU) });
   G.kills++;
   G.score += e.score * G.stats.yieldMul;
   /* the boss pays out in sevens */
@@ -1471,8 +1503,8 @@ function update(dt) {
   /* --- the night mimic: only the mirror hall breeds it --- */
   G.mimicT -= dt;
   if (G.mimicT <= 0) {
-    G.mimicT = rand(26, 40);
-    if (zoneOf(G.epoch).id === "mirror") {
+    G.mimicT = (SEASONS[G.season % SEASONS.length] || {}).law === "mimic" ? rand(12, 22) : rand(26, 40);
+    if (zoneOf(G.epoch).id === "mirror" || (SEASONS[G.season % SEASONS.length] || {}).law === "mimic") {
       var mcount = 0;
       for (var mi = 0; mi < G.enemies.length; mi++) { if (G.enemies[mi].type === "mimic") mcount++; }
       if (mcount < 1) {
@@ -1823,6 +1855,7 @@ function gameOver() {
   var walkText = "DONT FADE THE BLUE FROG"
     + "\nwalked as " + (SKIN_NAMES[G.skin] || "TOBY · THE PEOPLE")
     + (G.keeper ? " — with " + KEEPERS[G.keeper].name + " at my side" : "")
+    + "\nseason " + ((G.season || 0) % SEASONS.length + 1) + " · " + SEASONS[(G.season || 0) % SEASONS.length].name
     + "\nfell at " + epochName(G.epoch) + " · " + zn
     + "\n" + (G.score | 0).toLocaleString() + " yield · " + G.kills + " faded"
     + "\npatience 🔵 strength — the walk continues"
@@ -2407,6 +2440,15 @@ function showCodex() {
       '<div>HUSH · keeper of the quiet pulse <span style="color:var(--dim)">gray</span> · deed 0191</div>' +
       '<div>Satoby · keeper of the yield <span style="color:var(--gold)">gold</span> · deed 0716</div>' +
       '<div>SAT0 · the chrome cycle rides beside toby · speed and signal</div></div>');
+    var seaNow = seasonNow();
+    out.push('<div class="codex-sec">part iv · the seasons — every 77 days the world re-forges</div>');
+    SEASONS.forEach(function (sea, i2) {
+      var sn2 = seaNow.i >= i2 ? ' (walked)' : '';
+      if (seaNow.i % SEASONS.length === i2) sn2 = ' — <span style="color:var(--gold)">now</span>';
+      out.push('<div style="color:var(--gold);font-size:15px;margin:0 0 2px">season ' + (i2 + 1)
+        + ' · ' + esc(sea.name) + sn2 + '</div>'
+        + '<div style="color:var(--dim);font-size:15px;margin:0 0 8px">its law: ' + esc(sea.lawLine) + '</div>');
+    });
     out.push('<div class="codex-sec">part iii · the archive (' + CODEX_LORE.length + ' words of toadgod)</div>');
     CODEX_LORE.forEach(function (l) {
       out.push('<div class="codex-entry">' + esc(l.q) +
@@ -2475,6 +2517,15 @@ function copyTheWalk() {
 document.getElementById("share-copy").addEventListener("click", copyTheWalk);
 
 /* the hall of the fallen: the best walks, read from the browser's stone */
+function fillSeason() {
+  var el = document.getElementById("season-line");
+  if (!el) return;
+  var se = seasonNow();
+  el.textContent = "SEASON " + (se.i + 1) + " · " + se.s.name + " — day " + se.dayIn
+    + " of 77 · law: " + se.s.lawLine;
+  el.hidden = false;
+}
+
 function fillHall() {
   var el = document.getElementById("hall");
   if (!el) return;
@@ -2494,6 +2545,7 @@ function fillHall() {
   el.innerHTML = lines.join("");
 }
 fillHall();
+fillSeason();
 
 document.getElementById("retry").addEventListener("click", startGame);
 
@@ -2540,6 +2592,7 @@ document.getElementById("pause-menu").addEventListener("click", function () {
   document.getElementById("patience-wrap").hidden = true;
   document.getElementById("menu").hidden = false;
   if (typeof fillHall === "function") fillHall();
+  if (typeof fillSeason === "function") fillSeason();
   G = null;
 });
 /* auto-pause when the frog looks away (tab hidden) */
