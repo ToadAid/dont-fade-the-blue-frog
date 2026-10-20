@@ -1,8 +1,8 @@
 # ⚒ GAMEFORGE — How the Lore Became the Game
 
-Toadaid translated the archive all this time. Every saying, every deed, every riddle —
+Toadaid translated the archive all this time. Every saying, every lore, every riddle —
 sorted, dated, kept. And it waited for a body. This file is the forge ledger: **every
-mechanic in the game, traced to the deed it was forged from.** Nothing was invented.
+mechanic in the game, traced to the lore it was forged from.** Nothing was invented.
 It was all already spoken.
 
 *the game is the lore, the lore is the game.*
@@ -11,7 +11,7 @@ It was all already spoken.
 
 ## The name → the whole game
 
-**Deed TOBY_T003** — 2024-03-17, the first day:
+**Lore TOBY_T003** — 2024-03-17, the first day:
 
 > dont fade the blue frog
 
@@ -20,7 +20,7 @@ is that sentence, playable: the horde comes to fade you, and you do not fade.
 
 ## The enemies → the Sacred War
 
-**Deed TOBY_T061** — Cycles, Conviction & the Sacred War, 2024-05-13:
+**Lore TOBY_T061** — Cycles, Conviction & the Sacred War, 2024-05-13:
 
 > war. ego. fud. macro. govts. fiat. banks. inflation. manipulation.
 > manipulation imitators, naysayers, rigged distribution,
@@ -36,7 +36,7 @@ The spawn table is this tweet:
 
 ## The intra timer → the 77.7 clock
 
-**Deed TOBY_T064** — Belief, Epoch & Sacred Proof, 2024-06-01:
+**Lore TOBY_T064** — Belief, Epoch & Sacred Proof, 2024-06-01:
 
 > clock to zero?
 > answer: intra timer resets + cohort 1. epoch 1 still in session.
@@ -47,7 +47,7 @@ Patience does not panic. The game says it every 77.7 seconds.
 
 ## Patience 🔵 Strength
 
-**Deed TOBY_T074** — 2024-08-03:
+**Lore TOBY_T074** — 2024-08-03:
 
 > patience 🔵 strength
 
@@ -56,7 +56,7 @@ that doesn't panic is rewarded — auto-fires a shockwave as its zaps grow sacre
 
 ## The epochs → the levels
 
-**Deed TOBY_T073** — Epoch Transition & Expansion, 2024-07-18:
+**Lore TOBY_T073** — Epoch Transition & Expansion, 2024-07-18:
 
 > ...and so epoch 1 concludes. E2: expansion upon us.
 
@@ -65,7 +65,7 @@ forge, fog, mirror, sacred seven — each zone one lesson, the wheel expands.
 
 ## The covenant of sevens
 
-**Deed TOBY_T064**:
+**Lore TOBY_T064**:
 
 > 777,777,777 + 777,777,777,777
 
@@ -77,17 +77,17 @@ The sevens are load-bearing:
 
 ## The wheel → THE FLYWHEEL
 
-**Deed TOBY_T075** — Tobyworld Resonance, 2024-09-18: Tobyworld's logo — concentric blue
+**Lore TOBY_T075** — Tobyworld Resonance, 2024-09-18: Tobyworld's logo — concentric blue
 rings, Toby at the center, SATOBY mirrored beneath. That image is the endgame mechanic:
 **the wheel**. Toby (the people) at the center; every level survived, Patience, Taboshi
 and Sat0 join the orbit. The proof of toad is the community orbiting the frog.
 
 ## The keepers → the ones who walk with you
 
-The painted keepers, each with their deed — and each with real teeth:
-- **OG** (deed 0182) — the oldest keeper does not watch. Fires its own zap strand with you. *"+1 zap · IT zaps too"*
-- **HUSH** (deed 0191) — silence pulse · clears bullets. The hall goes still.
-- **SATOBY** (deed 0716) — yield ×1.3 · pours orbs. Faith is not passive.
+The painted keepers, each with their lore — and each with real teeth:
+- **OG** (lore 0182) — the oldest keeper does not watch. Fires its own zap strand with you. *"+1 zap · IT zaps too"*
+- **HUSH** (lore 0191) — silence pulse · clears bullets. The hall goes still.
+- **SATOBY** (lore 0716) — yield ×1.3 · pours orbs. Faith is not passive.
 - **SAT0** — 🌀 speed · burns the chase. Nothing crowds the chrome.
 
 And you can walk **as** them: Toby · the people, Satoby · the faithful (quick feet,
