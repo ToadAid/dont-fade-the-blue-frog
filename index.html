@@ -532,6 +532,7 @@ body::after {
     <div class="sharebox">
       <div class="share-line" id="share-line"></div>
       <button class="btn btn-minor" id="share-copy">COPY THE WALK · BRAG TO THE PEOPLE</button>
+      <button class="btn btn-minor" id="share-img">WALK AS ART · SAVE THE CARD</button>
     </div>
     <button class="btn gold" id="retry">BEGIN AGAIN · LEVEL I</button>
   </div>
@@ -2666,6 +2667,76 @@ function copyTheWalk() {
   } else fallback();
 }
 document.getElementById("share-copy").addEventListener("click", copyTheWalk);
+
+/* WALK AS ART: the death card rendered as a 1200x630 image in the game's own art — save and brag */
+function drawWalkCard() {
+  var text = document.getElementById("share-line").textContent || "DONT FADE THE BLUE FROG";
+  var cv = document.createElement("canvas");
+  cv.width = 1200; cv.height = 630;
+  var c = cv.getContext("2d");
+  var ink = "#04121d", blue = "#3aa0ff", gold = "#f2c14e", bone = "#e9e4d6", dim = "#7286a8", deep = "#175bb0";
+  c.fillStyle = ink; c.fillRect(0, 0, 1200, 630);
+  /* the wheel rings behind the frog, as the og-card carries them */
+  var cx = 250, cy = 305;
+  var gd = c.createRadialGradient(cx, cy, 40, cx, cy, 340);
+  gd.addColorStop(0, "rgba(58,160,255,0.20)"); gd.addColorStop(1, "rgba(4,18,29,0)");
+  c.fillStyle = gd; c.fillRect(0, 0, 520, 630);
+  c.strokeStyle = "#1c2c4a"; c.lineWidth = 2;
+  [300, 232, 164, 366].forEach(function (r) { c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.stroke(); });
+  c.strokeStyle = deep; c.globalAlpha = 0.55; c.beginPath(); c.arc(cx, cy, 164, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+  c.fillStyle = gold; c.beginPath(); c.arc(cx, cy - 300, 7, 0, Math.PI * 2); c.fill();
+  /* the frog you fell as */
+  try { var sk = (G && G.skin) || "toby"; var spr = SPR[sk];
+    if (spr && spr.complete && spr.naturalWidth) { c.imageSmoothingEnabled = false; c.drawImage(spr, cx - 120, cy - 120, 240, 240); }
+  } catch (e0) {}
+  /* the word */
+  c.textBaseline = "alphabetic";
+  c.fillStyle = gold; c.font = '17px "Press Start 2P", monospace'; c.textAlign = "left";
+  c.fillText("TOBYWORLD", 470, 120);
+  c.fillStyle = bone; c.font = '34px "Press Start 2P", monospace';
+  c.fillText("THE WALK", 470, 170);
+  /* the walk lines, colored as lore */
+  var lines = text.split("\n").filter(function (l) { return l; });
+  var y = 232, big = false;
+  for (var i = 0; i < lines.length; i++) {
+    var ln = lines[i];
+    if (/DONT FADE THE BLUE FROG/.test(ln)) continue;
+    if (/toadaid\.github\.io/.test(ln)) continue;
+    var col = dim, size = 25, fam = '"VT323", monospace';
+    if (/walked as/.test(ln)) col = blue;
+    else if (/twice-lived|keeper of the word/.test(ln)) col = gold;
+    else if (/ yield \u00b7 /.test(ln) || /" \u00b7 "|yield \u00b7/.test(ln)) { col = gold; size = 42; big = true; }
+    else if (/patience/.test(ln)) col = bone;
+    c.fillStyle = col;
+    c.font = (big ? '42px ' : size + 'px ') + fam;
+    c.fillText(ln, 470, y); big = false;
+    y += size + (big ? 16 : 12);
+  }
+  c.fillStyle = blue; c.font = '21px "VT323", monospace';
+  c.fillText("toadaid.github.io/dont-fade-the-blue-frog", 470, 596);
+  c.fillStyle = dim; c.fillText("the wheel hums what it holds", 880, 596);
+  return cv;
+}
+function saveWalkCard() {
+  try {
+    var cv = drawWalkCard();
+    var done = function () { toast("THE WALK IS ART — the-walk.png walks with you", 2400); };
+    var url = null;
+    if (cv.toBlob) {
+      cv.toBlob(function (b) {
+        try {
+          url = URL.createObjectURL(b);
+          var a = document.createElement("a");
+          a.href = url; a.download = "the-walk.png";
+          document.body.appendChild(a); a.click();
+          setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+          done();
+        } catch (e2) { if (window.open) window.open(cv.toDataURL("image/png")); done(); }
+      }, "image/png");
+    } else if (window.open) { window.open(cv.toDataURL("image/png")); done(); }
+  } catch (e) { toast("THE ART REFUSED — copy the walk instead", 2000); }
+}
+document.getElementById("share-img").addEventListener("click", saveWalkCard);
 
 /* the hall of the fallen: the best walks, read from the browser's stone */
 function fillSeason() {
