@@ -164,6 +164,39 @@ of toadgod, dated and intact** — from the first day ("dont fade the blue frog"
 final retweet — the archive the game was forged from, one click away for the frogs who
 want to study. The game did not replace the lore. It carries it.
 
+## The walks become art → the card
+
+The walk card the game writes on every fall is a real picture now. **WALK AS
+ART · SAVE THE CARD** under *copy the walk* paints the same card as a
+**1200×630 PNG** in the game's own art: the frog you fell as sitting in the
+wheel rings, your yield in big gold, the walked-as line in blue, *patience 🔵
+strength* in bone. Every hall in the people's lands can carry an image, so the
+card walks too (saved as `the-walk.png`). Rare walks leave with the deepest
+lines of all — *twice-lived*, *keeper of the word*, and **the stone answered**.
+
+## The stone answers → the covenant knows you
+
+In the vault, a stone hums 777/1111 — the numeric covenant, picked up for the
+score and a heart. But **one stone answers**. Be walking the vault holding the
+key, with your keeper at your side — and having **read the astrolabe** on the
+way — and the first stone you meet speaks: *THE STONE ANSWERS — the wheel is
+read, the key is held · 777 turns · 1111 the door · the covenant knows you.*
+It fires once in a walk; every stone after it only hums. And the death card
+gains its line: `the stone answered`.
+
+## One heart hears → the last-heart thump
+
+When only **one heart** walks, it hears itself: a soft **lub-dub** under the
+wheel hum, a nervous ~70 beats a minute, gone the moment a second heart
+returns. Fear you can hear. Nothing downloaded — the heart is born and dies
+in the same tiny synth as everything else.
+
+## The one finger → the walk
+
+The walk is held by **one finger**. A second finger brushing the phone cannot
+steal the walk or end it — the first finger owns the way, and only its lift
+lets go. (Finger-drag hiccups on mobile, found by Tommie, cut in #23.)
+
 ## The links → the source
 
 The menu sends every frog where the word was spoken:

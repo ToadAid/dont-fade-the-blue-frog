@@ -713,6 +713,30 @@ function humVoices() {
 }
 
 var SCALE = [220, 247, 277, 330, 370, 440, 494, 554, 660, 740, 880];
+
+/* THE LAST-HEART THUMP: when one heart walks, it hears itself — a soft lub-dub under the wheel hum */
+var HEART_T = 0;
+function heartThump(dt) {
+  var on = AC && master && !muted && G && G.mode === "play" && !G.paused && G.hp === 1;
+  if (!on) { HEART_T = 0; return; }
+  HEART_T -= dt;
+  if (HEART_T > 0) return;
+  HEART_T = 0.85; /* a nervous heart, a little faster than rest */
+  try {
+    var t0 = AC.currentTime;
+    for (var b = 0; b < 2; b++) {
+      var off = b * 0.18, o = AC.createOscillator(), g = AC.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(b ? 52 : 62, t0 + off);
+      o.frequency.exponentialRampToValueAtTime(38, t0 + off + 0.16);
+      g.gain.setValueAtTime(0.0001, t0 + off);
+      g.gain.linearRampToValueAtTime(b ? 0.1 : 0.14, t0 + off + 0.025);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + off + 0.2);
+      o.connect(g); g.connect(master);
+      o.start(t0 + off); o.stop(t0 + off + 0.24);
+    }
+  } catch (e) {}
+}
 function beep(freq, dur, type, gain, slideTo) {
   if (!AC || muted) return;
   try {
@@ -1162,6 +1186,7 @@ function newGame() {
     chestT: 55,
     followers: [], wheelA: 0,
     hasKey: false, chests: 0, mimicT: rand(18, 30),
+    hasAstro: false, stoneAnswered: false,
     zapBuffT: 0,
     astroT: rand(50, 80),
     rebirth: false, twiceLived: false,
@@ -1733,9 +1758,19 @@ function update(dt) {
         for (var so = 0; so < 7; so++) G.orbs.push({ x: o.x + rand(-26, 26), y: o.y + rand(-20, 20), vx: rand(-60, 60), vy: rand(-60, 60), taboshi: false, r: 5, t: rand(0, TAU) });
         addParts(o.x, o.y, "#f2c14e", 26, 200);
         addText(o.x, o.y - 24, "777/1111", "#f2c14e", 20);
-        toast("THE STONE HUMS 777/1111 — the covenant holds", 2800);
-        G.flash = Math.max(G.flash, 0.5); G.shake = REDUCED ? 3 : 9;
-        sfx.epoch();
+        if (!G.stoneAnswered && G.hasKey && G.hasAstro && zoneOf(G.epoch).id === "vault") {
+          /* THE STONE ANSWERS: the key held, the keeper walked at your side, the wheel read — the covenant says so */
+          G.stoneAnswered = true;
+          addParts(o.x, o.y, "#f2c14e", 40, 280);
+          addText(o.x, o.y - 46, "IT ANSWERS", "#f2c14e", 24);
+          toast("THE STONE ANSWERS — the wheel is read, the key is held · 777 turns · 1111 the door · the covenant knows you", 4200);
+          G.flash = Math.max(G.flash, 0.85); G.shake = REDUCED ? 5 : 14;
+          sfx.epoch(); sfx.orb();
+        } else {
+          toast("THE STONE HUMS 777/1111 — the covenant holds", 2800);
+          G.flash = Math.max(G.flash, 0.5); G.shake = REDUCED ? 3 : 9;
+          sfx.epoch();
+        }
         G.orbs.splice(i, 1); continue;
       }
       if (o.key) {
@@ -1771,6 +1806,7 @@ function update(dt) {
       }
       if (o.astro) {
         /* the wheel's reader: walks you into the boon early */
+        G.hasAstro = true;
         addParts(o.x, o.y, "#7cc4ff", 18, 170);
         addText(o.x, o.y - 20, "THE WHEEL TURNS", "#7cc4ff", 16);
         toast("THE ASTROLABE TURNS — the wheel resets for the faithful", 3000);
@@ -1949,6 +1985,7 @@ function gameOver() {
     + "\nfell at " + epochName(G.epoch) + " · " + zn
     + (G.twiceLived ? "\ntwice-lived \u2014 the cocoon opened where I fell" : "")
     + keeperWord()
+    + (G.stoneAnswered ? "\nthe stone answered" : "")
     + "\n" + (G.score | 0).toLocaleString() + " yield · " + G.kills + " faded"
     + "\npatience 🔵 strength — the walk continues"
     + "\nhttps://toadaid.github.io/dont-fade-the-blue-frog/";
@@ -2445,6 +2482,7 @@ function frame(ts) {
   if (G && G.mode === "play" && !G.paused) {
     update(dt);
     updateHud();
+    heartThump(dt);
   }
   if (G) render(t);
   else renderMenuBg(t);
@@ -2711,7 +2749,7 @@ function drawWalkCard() {
     if (/toadaid\.github\.io/.test(ln)) continue;
     var col = dim, size = 25, fam = '"VT323", monospace';
     if (/walked as/.test(ln)) col = blue;
-    else if (/twice-lived|keeper of the word/.test(ln)) col = gold;
+    else if (/twice-lived|keeper of the word|the stone answered/.test(ln)) col = gold;
     else if (/ yield \u00b7 /.test(ln) || /" \u00b7 "|yield \u00b7/.test(ln)) { col = gold; size = 42; big = true; }
     else if (/patience/.test(ln)) col = bone;
     c.fillStyle = col;
@@ -2887,6 +2925,11 @@ var boot = function () {
         if (/vault/.test(location.search)) {
           G.epoch = 8; G.hasKey = true; G.followers = [];
           if (/rebornz/.test(location.search)) G.rebirth = true;
+          if (/stonez/.test(location.search)) {
+            /* stage the full answer: wheel read, stone underfoot */
+            G.hasAstro = true;
+            G.orbs.push({ x: W / 2, y: H / 2, vx: 0, vy: 0, stone: true, field: true, r: 5, t: 0 });
+          }
 
           for (var wv = 0; wv < 7; wv++) G.followers.push({ kind: WHEEL_ORDER[wv % WHEEL_ORDER.length], a: rand(0, TAU), r: 26 + wv * 6.5 });
           G.wheelA = 1;
