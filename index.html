@@ -1187,6 +1187,7 @@ function newGame() {
     followers: [], wheelA: 0,
     hasKey: false, chests: 0, mimicT: rand(18, 30),
     hasAstro: false, stoneAnswered: false,
+    scrollT: rand(40, 70), loreGot: 0,
     zapBuffT: 0,
     astroT: rand(50, 80),
     rebirth: false, twiceLived: false,
@@ -1601,6 +1602,18 @@ function update(dt) {
     }
   }
 
+  /* --- the fallen scroll: a word of toadgod lies in the field — walk to it, claim it --- */
+  G.scrollT -= dt;
+  if (G.scrollT <= 0) {
+    G.scrollT = rand(40, 70);
+    var scx = rand(70, W - 70), scy = rand(90, H - 110);
+    if (dist2(scx, scy, G.px, G.py) > 150 * 150) {
+      G.orbs.push({ x: scx, y: scy, vx: 0, vy: 0, scroll: true, field: true, r: 5, t: rand(0, TAU) });
+      addText(scx, scy - 30, "A WORD LIES HERE", "#e9e4d6", 13);
+      beep(SCALE[8], 0.3, "triangle", 0.02);
+    }
+  }
+
   /* --- the toadgod speaks, study frog life --- */
   G.loreT -= dt;
   if (G.loreT <= 0) {
@@ -1750,7 +1763,7 @@ function update(dt) {
       var ddx = G.px - o.x, ddy = G.py - o.y, dl2 = Math.sqrt(dd) || 1;
       o.x += ddx / dl2 * 300 * dt; o.y += ddy / dl2 * 300 * dt;
     }
-    if (dd < (o.stone ? 30 * 30 : o.astro ? 28 * 28 : o.cocoon ? 24 * 24 : o.key ? 26 * 26 : 18 * 18)) {
+    if (dd < (o.stone ? 30 * 30 : o.astro ? 28 * 28 : o.scroll ? 24 * 24 : o.cocoon ? 24 * 24 : o.key ? 26 * 26 : 18 * 18)) {
       if (o.stone) {
         /* the 777/1111 stone — the numeric covenant, held in the vault */
         G.score += 777 * G.stats.yieldMul;
@@ -1802,6 +1815,19 @@ function update(dt) {
         }
         addParts(o.x, o.y, "#f2c14e", 14, 160);
         sfx.epoch();
+        G.orbs.splice(i, 1); continue;
+      }
+      if (o.scroll) {
+        /* the fallen scroll read — the archived word becomes yours */
+        G.loreGot += 1;
+        var ll = CODEX_LORE[randInt(0, CODEX_LORE.length - 1)];
+        var lq = ll.q.length > 70 ? ll.q.slice(0, 68) + "…" : ll.q;
+        toast("📜 " + lq + " · " + ll.t + " · " + ll.d, 3800);
+        addText(o.x, o.y - 26, "LORE COLLECTED", "#e9e4d6", 16);
+        addParts(o.x, o.y, "#e9e4d6", 14, 150);
+        G.score += 77;
+        G.flash = Math.max(G.flash, 0.3);
+        sfx.orb(); beep(SCALE[8], 0.35, "sine", 0.03);
         G.orbs.splice(i, 1); continue;
       }
       if (o.astro) {
@@ -1986,6 +2012,7 @@ function gameOver() {
     + (G.twiceLived ? "\ntwice-lived \u2014 the cocoon opened where I fell" : "")
     + keeperWord()
     + (G.stoneAnswered ? "\nthe stone answered" : "")
+    + (G.loreGot ? "\n📜 " + G.loreGot + " lore collected" : "")
     + "\n" + (G.score | 0).toLocaleString() + " yield · " + G.kills + " faded"
     + "\npatience 🔵 strength — the walk continues"
     + "\nhttps://toadaid.github.io/dont-fade-the-blue-frog/";
@@ -2287,6 +2314,16 @@ function render(t) {
       var simg2 = IMG.stone, sw2 = 17;
       if (simg2 && simg2.complete && simg2.naturalWidth) ctx.drawImage(simg2, -sw2, -sw2 * 1.22, sw2 * 2, sw2 * 2.44);
       else { ctx.fillStyle = "#f2c14e"; ctx.fillRect(-sw2, -sw2, sw2 * 2, sw2 * 2); }
+      ctx.restore();
+    } else if (o.scroll) {
+      /* the fallen scroll — toadgod's word on paper */
+      ctx.save();
+      ctx.translate(o.x, o.y + wob);
+      ctx.rotate(Math.sin(t * 1.5 + o.t) * 0.1);
+      glow(o.x, o.y + wob, 22, "233,228,214", 0.3 + 0.12 * Math.sin(t * 3 + o.t));
+      ctx.textAlign = "center";
+      ctx.font = "17px serif";
+      ctx.fillText("📜", 0, 6);
       ctx.restore();
     } else if (o.astro) {
       /* the astrolabe — it reads the wheel */
@@ -2749,7 +2786,7 @@ function drawWalkCard() {
     if (/toadaid\.github\.io/.test(ln)) continue;
     var col = dim, size = 25, fam = '"VT323", monospace';
     if (/walked as/.test(ln)) col = blue;
-    else if (/twice-lived|keeper of the word|the stone answered/.test(ln)) col = gold;
+    else if (/twice-lived|keeper of the word|the stone answered|lore collected/.test(ln)) col = gold;
     else if (/ yield \u00b7 /.test(ln) || /" \u00b7 "|yield \u00b7/.test(ln)) { col = gold; size = 42; big = true; }
     else if (/patience/.test(ln)) col = bone;
     c.fillStyle = col;
@@ -2903,7 +2940,7 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
 /* boot through the viewer's update hook when present */
 var boot = function () {
   /* debug: /?over previews the death screen, /?play runs the game (headless screenshots) */
-  if (/play|over|boon|chest|seedz|astroz|cocoonz/.test(location.search)) {
+  if (/play|over|boon|chest|seedz|astroz|cocoonz|lorez/.test(location.search)) {
     setTimeout(function () {
       try {
         if (/satoby/.test(location.search)) SKIN_SEL = "satoby";
@@ -2918,6 +2955,7 @@ var boot = function () {
         if (/chest/.test(location.search)) G.enemies.push({ type: "chest", x: W * 0.66, y: H * 0.42, px: W * 0.66, py: H * 0.42, hp: 22, maxHp: 30, r: 17, speed: 0, seed: 1, stun: 0, shoot: 999, wobble: 0, score: 77 });
         if (/seedz/.test(location.search)) G.orbs.push({ x: W * 0.3, y: H * 0.6, vx: 0, vy: 0, taboshi: true, field: true, r: 5, t: 0 });
         if (/astroz/.test(location.search)) G.orbs.push({ x: W * 0.68, y: H * 0.34, vx: 0, vy: 0, astro: true, field: true, r: 5, t: 0 });
+        if (/lorez/.test(location.search)) G.orbs.push({ x: W / 2, y: H / 2, vx: 0, vy: 0, scroll: true, field: true, r: 5, t: 0 });
         if (/cocoonz/.test(location.search)) G.orbs.push({ x: W * 0.68, y: H * 0.34, vx: 0, vy: 0, cocoon: true, field: true, r: 5, t: 0 });
         if (/mimic/.test(location.search)) G.enemies.push({ type: "mimic", x: W * 0.62, y: H * 0.4, px: W * 0.62, py: H * 0.4, hp: 14, maxHp: 14, r: 11, speed: 150, seed: 2, stun: 0, shoot: 999, wobble: 0, score: 77 });
         if (/faderz/.test(location.search)) [0.4, 0.52, 0.64].forEach(function (fx) { G.enemies.push({ type: "fader", x: W * fx, y: H * 0.52, px: W * fx, py: H * 0.52, hp: 4, maxHp: 4, r: 11, speed: 40, seed: fx * 9, stun: 0, shoot: 999, wobble: 0, score: 7 }); });
