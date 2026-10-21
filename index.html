@@ -1221,13 +1221,20 @@ window.addEventListener("keydown", function (e) {
 }, { passive: false });
 window.addEventListener("keyup", function (e) { keys[e.key.toLowerCase()] = false; });
 
-var touch = { active: false, ox: 0, oy: 0, x: 0, y: 0 };
+/* the first finger owns the walk — no stray second touch can steal the origin or end the drag */
+var touch = { active: false, id: null, ox: 0, oy: 0, x: 0, y: 0 };
 canvas.addEventListener("pointerdown", function (e) {
-  touch.active = true; touch.ox = e.clientX; touch.oy = e.clientY; touch.x = e.clientX; touch.y = e.clientY;
+  if (touch.active && e.pointerId !== touch.id) return;
+  touch.active = true; touch.id = e.pointerId;
+  touch.ox = e.clientX; touch.oy = e.clientY; touch.x = e.clientX; touch.y = e.clientY;
   canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
 });
-canvas.addEventListener("pointermove", function (e) { if (touch.active) { touch.x = e.clientX; touch.y = e.clientY; } });
-function touchEnd() { touch.active = false; }
+canvas.addEventListener("pointermove", function (e) {
+  if (touch.active && e.pointerId === touch.id) { touch.x = e.clientX; touch.y = e.clientY; }
+});
+function touchEnd(e) {
+  if (!touch.active || e.pointerId === touch.id) { touch.active = false; touch.id = null; }
+}
 canvas.addEventListener("pointerup", touchEnd);
 canvas.addEventListener("pointercancel", touchEnd);
 
