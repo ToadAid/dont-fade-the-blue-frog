@@ -98,6 +98,14 @@ patient heart, thin hide), Hush · the silent (every ten rings the hall goes sti
 The faucet at **tobyworld.app/faucet** — "The Open Faucet" — drops a taboshi seed on the
 field even in the game. Claim it: zaps surge for 25s. Yield flows to the frog that walks.
 
+## The deed's seed → the Seed Vessel opens
+
+The deeds themselves hold the seed: relic **Seed Vessel** — the bare taboshi seed sealed
+inside the vine-woven reliquary, leaves and the sealed coin keeping it. Now and then the
+world sets one down in the field — rarer than a faucet seed. Claim it and the reliquary
+opens: **one heart back and the longest surge in the walk, 45s**. The seed that lived on
+a deed lives in the game too.
+
 ## The key → THE VAULT
 
 The key riddle held its promise: every second chest opened carries **THE KEY**, and Level
