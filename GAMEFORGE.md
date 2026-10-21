@@ -191,6 +191,14 @@ wheel hum, a nervous ~70 beats a minute, gone the moment a second heart
 returns. Fear you can hear. Nothing downloaded — the heart is born and dies
 in the same tiny synth as everything else.
 
+## The fallen scrolls → the lore you walk to
+
+Every 40–70s a **📜 scroll falls into the field** — *A WORD LIES HERE*.
+Walk to it and **LORE COLLECTED** lifts from it: a real saying from
+toadgod's archive, tagged and dated, spoken on the spot, 77 yield in its
+paper. The walk card keeps the count: `📜 N lore collected`. The dead never
+hold lore; lore is collected in the walk.
+
 ## The one finger → the walk
 
 The walk is held by **one finger**. A second finger brushing the phone cannot
