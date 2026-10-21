@@ -2176,7 +2176,7 @@ function render(t) {
     }
   }
   if (BG_CACHE) {
-    ctx.globalAlpha = 0.15;
+    ctx.globalAlpha = 0.22;
     ctx.drawImage(BG_CACHE, -W * 0.02, -H * 0.01, W * 1.04, H * 1.02);
     ctx.globalAlpha = 1;
   }  /* the vault has no painting — behind the lore, the covenant rings turn */
@@ -2195,13 +2195,7 @@ function render(t) {
 
   drawAmbient();
   drawClouds();
-  ctx.strokeStyle = "rgba(56,120,160,0.32)";
-  ctx.lineWidth = 1;
-  var step = 88;
-  ctx.beginPath();
-  for (var gx = (step / 2); gx < W; gx += step) { ctx.moveTo(gx, 0); ctx.lineTo(gx, H); }
-  for (var gy = step / 2; gy < H; gy += step) { ctx.moveTo(0, gy); ctx.lineTo(W, gy); }
-  ctx.stroke();
+  /* the grid has faded — the lore-land paintings carry the ground */
   /* rings around the player — the Tobyworld concentric rings */
   for (var ri = 1; ri <= 2; ri++) {
     ctx.strokeStyle = "rgba(58,160,255," + (0.07 / ri) + ")";
